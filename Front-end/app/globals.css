@@ -1,0 +1,582 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Playfair Display", Georgia, serif;
+  --font-sans: Inter, system-ui, sans-serif;
+
+  --color-gold: #C9A96E;
+  --color-gold-light: #E2C99A;
+  --color-gold-dark: #A07C45;
+  --color-cream: #F5F0E8;
+  --color-cream-dark: #EDE7D9;
+  --color-charcoal: #0A0A0A;
+  --color-charcoal-light: #141414;
+  --color-charcoal-medium: #1E1E1E;
+}
+
+/* ─── RESET ──────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: #0A0A0A;
+  color: #F5F0E8;
+  font-family: Inter, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  font-size: 15px;
+}
+
+/* ─── SCROLLBAR ───────────────────────────────── */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: #141414;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, #C9A96E, #A07C45);
+  border-radius: 10px;
+}
+
+::selection {
+  background: rgba(201, 169, 110, 0.25);
+  color: #C9A96E;
+}
+
+/* ─── GLASS CARD ──────────────────────────────── */
+.glass-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(201, 169, 110, 0.04) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* ─── DASHBOARD CARD ──────────────────────────── */
+.dash-card {
+  background: linear-gradient(145deg, #161616 0%, #111111 100%);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s ease;
+}
+
+.dash-card:hover {
+  border-color: rgba(201, 169, 110, 0.2);
+}
+
+.dash-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(201, 169, 110, 0.3), transparent);
+}
+
+/* ─── KPI CARD ────────────────────────────────── */
+.kpi-card {
+  background: linear-gradient(145deg, #161616, #0f0f0f);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+  padding: 1.75rem 2rem;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.25s ease;
+}
+
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 100%;
+  background: linear-gradient(to bottom, #C9A96E, transparent);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.kpi-card:hover {
+  border-color: rgba(201, 169, 110, 0.2);
+}
+
+.kpi-card:hover::before {
+  opacity: 1;
+}
+
+/* ─── TABLE STYLES ────────────────────────────── */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th {
+  text-align: left;
+  padding: 1rem 1.25rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(245, 240, 232, 0.35);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.data-table td {
+  padding: 1.1rem 1.25rem;
+  font-size: 0.9rem;
+  color: rgba(245, 240, 232, 0.75);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background 0.15s ease;
+}
+
+.data-table tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.data-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* ─── GOLD BUTTON ─────────────────────────────── */
+.btn-gold {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #C9A96E 0%, #B8934E 100%);
+  color: #0A0A0A;
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  border-radius: 1px;
+}
+
+.btn-gold::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), transparent);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.btn-gold:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(201, 169, 110, 0.35);
+}
+
+.btn-gold:hover::before {
+  opacity: 1;
+}
+
+.btn-gold:active {
+  transform: translateY(0);
+}
+
+.btn-gold:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ─── GHOST BUTTON ────────────────────────────── */
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent;
+  color: rgba(245, 240, 232, 0.5);
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  padding: 0.7rem 1.4rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 1px;
+}
+
+.btn-ghost:hover {
+  color: #F5F0E8;
+  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* ─── DANGER BUTTON ───────────────────────────── */
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+  font-size: 0.75rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 1px;
+}
+
+.btn-danger:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.45);
+}
+
+/* ─── INPUT ───────────────────────────────────── */
+.input-dark {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #F5F0E8;
+  font-size: 0.9rem;
+  padding: 0.8rem 1rem;
+  outline: none;
+  transition: border-color 0.2s ease, background 0.2s ease;
+  border-radius: 1px;
+}
+
+.input-dark::placeholder {
+  color: rgba(245, 240, 232, 0.2);
+}
+
+.input-dark:focus {
+  border-color: rgba(201, 169, 110, 0.5);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.input-dark:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ─── SELECT ──────────────────────────────────── */
+select.input-dark {
+  background-color: #141414;
+}
+
+/* ─── GOLD BADGE (inline tag) ─────────────────── */
+.badge-gold {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(201, 169, 110, 0.15);
+  color: #C9A96E;
+  border: 1px solid rgba(201, 169, 110, 0.3);
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.6rem;
+  border-radius: 99px;
+}
+
+/* ─── SECTION HEADER ──────────────────────────── */
+.section-title {
+  font-family: "Playfair Display", serif;
+  color: #F5F0E8;
+  font-size: 1.9rem;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+.section-sub {
+  color: rgba(245, 240, 232, 0.35);
+  font-size: 0.9rem;
+  margin-top: 0.3rem;
+}
+
+/* ─── GOLD DIVIDER ────────────────────────────── */
+.gold-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(201, 169, 110, 0.4) 30%, rgba(201, 169, 110, 0.4) 70%, transparent);
+}
+
+/* ─── SIDEBAR NAV ITEM ────────────────────────── */
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.875rem 1rem;
+  margin: 0.15rem 0.5rem;
+  border-radius: 6px;
+  color: rgba(245, 240, 232, 0.45);
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  position: relative;
+  cursor: pointer;
+}
+
+.sidebar-item:hover {
+  color: rgba(245, 240, 232, 0.85);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.sidebar-item.active {
+  color: #C9A96E;
+  background: rgba(201, 169, 110, 0.1);
+}
+
+.sidebar-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 20%;
+  bottom: 20%;
+  width: 2px;
+  background: linear-gradient(to bottom, #C9A96E, #A07C45);
+  border-radius: 0 2px 2px 0;
+}
+
+/* ─── TICKET CARD (Kitchen) ───────────────────── */
+.ticket-card {
+  background: linear-gradient(145deg, #161616, #111);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 4px;
+  overflow: hidden;
+  transition: all 0.25s ease;
+}
+
+.ticket-card:hover {
+  border-color: rgba(201, 169, 110, 0.2);
+  transform: translateY(-2px);
+}
+
+.ticket-urgent {
+  border-color: rgba(239, 68, 68, 0.4) !important;
+}
+
+.ticket-urgent::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(239, 68, 68, 0.03);
+  pointer-events: none;
+}
+
+/* ─── TABLE CELL (Cashier map) ────────────────── */
+.table-cell {
+  border-radius: 6px;
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.table-cell:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.table-cell::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.04), transparent);
+  pointer-events: none;
+}
+
+/* ─── ANIMATIONS ──────────────────────────────── */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-gold {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(201, 169, 110, 0.4);
+  }
+
+  50% {
+    box-shadow: 0 0 0 6px rgba(201, 169, 110, 0);
+  }
+}
+
+@keyframes heroReveal {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: -200% 0;
+  }
+
+  to {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease both;
+}
+
+.animate-fade-up {
+  animation: fadeUp 0.5s ease both;
+}
+
+.hero-animate {
+  animation: heroReveal 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.pulse-gold {
+  animation: pulse-gold 2s infinite;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s ease both;
+}
+
+/* ─── NAV LINK ────────────────────────────────── */
+.nav-link {
+  position: relative;
+  padding-bottom: 2px;
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: #C9A96E;
+  transition: width 0.3s ease;
+}
+
+.nav-link:hover::after {
+  width: 100%;
+}
+
+/* ─── IMAGE ZOOM ──────────────────────────────── */
+.img-zoom {
+  overflow: hidden;
+}
+
+.img-zoom img {
+  transition: transform 0.6s ease;
+}
+
+.img-zoom:hover img {
+  transform: scale(1.05);
+}
+
+/* ─── HERO GRADIENT ───────────────────────────── */
+.hero-gradient {
+  background: linear-gradient(to bottom, rgba(13, 13, 13, 0.3) 0%, rgba(13, 13, 13, 0.1) 40%, rgba(13, 13, 13, 0.8) 100%);
+}
+
+/* ─── SKELETON LOADER ─────────────────────────── */
+.skeleton {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.04) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 2px;
+}
+
+/* ─── MODAL ───────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modal-box {
+  background: linear-gradient(145deg, #1a1a1a, #141414);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+.modal-box::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #C9A96E 40%, #C9A96E 60%, transparent);
+}
