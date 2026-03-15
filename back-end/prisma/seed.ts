@@ -207,6 +207,26 @@ async function main() {
         });
     }
 
+    // Get the first category
+    const appetizer = await prisma.category.findFirst({ where: { name: 'Appetizers' } });
+
+    // Create sample menu items
+    if (appetizer) {
+        console.log('Creating sample menu items...');
+        await prisma.menuItem.upsert({
+            where: { id: 'test-item-1' },
+            update: {},
+            create: {
+                id: 'test-item-1',
+                name: 'Spring Rolls',
+                description: 'Crispy rolls with vegetables',
+                price: 5.99,
+                categoryId: appetizer.id,
+                isAvailable: true,
+            },
+        });
+    }
+
     // Create sample tables
     console.log('Creating sample tables...');
     for (let i = 1; i <= 10; i++) {
