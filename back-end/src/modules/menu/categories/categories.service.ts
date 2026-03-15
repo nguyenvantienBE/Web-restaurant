@@ -4,64 +4,64 @@ import { CreateCategoryDto, UpdateCategoryDto } from './dto/category.dto';
 
 @Injectable()
 export class CategoriesService {
-    constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
-    async create(createDto: CreateCategoryDto) {
-        return this.prisma.category.create({
-            data: createDto,
-        });
+  async create(createDto: CreateCategoryDto) {
+    return this.prisma.category.create({
+      data: createDto,
+    });
+  }
+
+  async findAll(activeOnly = false) {
+    const where = activeOnly ? { isActive: true } : {};
+
+    return this.prisma.category.findMany({
+      where,
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      include: {
+        _count: {
+          select: { menuItems: true },
+        },
+      },
+    });
+  }
+
+  async findOne(id: string) {
+    const category = await this.prisma.category.findUnique({
+      where: { id },
+      include: {
+        menuItems: {
+          where: { isAvailable: true },
+          orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+        },
+      },
+    });
+
+    if (!category) {
+      throw new NotFoundException('Category not found');
     }
 
-    async findAll(activeOnly = false) {
-        const where = activeOnly ? { isActive: true } : {};
+    return category;
+  }
 
-        return this.prisma.category.findMany({
-            where,
-            orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
-            include: {
-                _count: {
-                    select: { menuItems: true },
-                },
-            },
-        });
+  async update(id: string, updateDto: UpdateCategoryDto) {
+    const category = await this.prisma.category.findUnique({ where: { id } });
+    if (!category) {
+      throw new NotFoundException('Category not found');
     }
 
-    async findOne(id: string) {
-        const category = await this.prisma.category.findUnique({
-            where: { id },
-            include: {
-                menuItems: {
-                    where: { isAvailable: true },
-                    orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
-                },
-            },
-        });
+    return this.prisma.category.update({
+      where: { id },
+      data: updateDto,
+    });
+  }
 
-        if (!category) {
-            throw new NotFoundException('Category not found');
-        }
-
-        return category;
+  async remove(id: string) {
+    const category = await this.prisma.category.findUnique({ where: { id } });
+    if (!category) {
+      throw new NotFoundException('Category not found');
     }
 
-    async update(id: string, updateDto: UpdateCategoryDto) {
-        const category = await this.prisma.category.findUnique({ where: { id } });
-        if (!category) {
-            throw new NotFoundException('Category not found');
-        }
-
-        return this.prisma.category.update({
-            where: { id },
-            data: updateDto,
-        });
-    }
-
-    async remove(id: string) {
-        const category = await this.prisma.category.findUnique({ where: { id } });
-        if (!category) {
-            throw new NotFoundException('Category not found');
-        }
-
-        return this.prisma.category.delete({ where: { id } });
-    }
+    return this.prisma.category.delete({ where: { id } });
+  }
 }

@@ -14,36 +14,42 @@ import { RealtimeModule } from './realtime/realtime.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+import { PaymentsModule } from './modules/payments/payments.module';
+import { InvoicesModule } from './modules/invoices/invoices.module';
+import { ReportsModule } from './modules/reports/reports.module';
 
 @Module({
-    imports: [
-        ConfigModule.forRoot({
-            load: [configuration],
-            isGlobal: true,
-        }),
-        AuthModule,
-        UsersModule,
-        MenuItemsModule,
-        CategoriesModule,
-        TablesModule,
-        OrdersModule,
-        KitchenModule,
-        RealtimeModule,
-    ],
-    providers: [
-        PrismaService,
-        {
-            provide: APP_FILTER,
-            useClass: HttpExceptionFilter,
-        },
-        {
-            provide: APP_INTERCEPTOR,
-            useClass: LoggingInterceptor,
-        },
-        {
-            provide: APP_INTERCEPTOR,
-            useClass: TransformInterceptor,
-        },
-    ],
+  imports: [
+    ConfigModule.forRoot({
+      load: [configuration],
+      isGlobal: true,
+    }),
+    AuthModule,
+    UsersModule,
+    MenuItemsModule,
+    CategoriesModule,
+    TablesModule,
+    OrdersModule,
+    KitchenModule,
+    RealtimeModule,
+    PaymentsModule,
+    InvoicesModule,
+    ReportsModule,
+  ],
+  providers: [
+    PrismaService,
+    {
+      provide: APP_FILTER,
+      useClass: HttpExceptionFilter,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LoggingInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: TransformInterceptor,
+    },
+  ],
 })
-export class AppModule { }
+export class AppModule {}

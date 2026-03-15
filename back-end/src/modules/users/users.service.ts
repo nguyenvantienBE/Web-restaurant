@@ -7,130 +7,130 @@ import { getPaginationParams, createPaginationMeta } from '@/common/utils/pagina
 
 @Injectable()
 export class UsersService {
-    constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
-    async create(createUserDto: CreateUserDto) {
-        // Check if email already exists
-        const existing = await this.prisma.user.findUnique({
-            where: { email: createUserDto.email },
-        });
+  async create(createUserDto: CreateUserDto) {
+    // Check if email already exists
+    const existing = await this.prisma.user.findUnique({
+      where: { email: createUserDto.email },
+    });
 
-        if (existing) {
-            throw new ConflictException('Email already exists');
-        }
-
-        // Hash password
-        const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
-
-        const user = await this.prisma.user.create({
-            data: {
-                ...createUserDto,
-                password: hashedPassword,
-            },
-            include: {
-                role: true,
-            },
-        });
-
-        // Exclude password from response
-        const { password, ...result } = user;
-        return result;
+    if (existing) {
+      throw new ConflictException('Email already exists');
     }
 
-    async findAll(page = 1, limit = 10) {
-        const { skip, take } = getPaginationParams(page, limit);
+    // Hash password
+    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
 
-        const [users, total] = await Promise.all([
-            this.prisma.user.findMany({
-                skip,
-                take,
-                include: {
-                    role: true,
-                },
-                orderBy: {
-                    createdAt: 'desc',
-                },
-            }),
-            this.prisma.user.count(),
-        ]);
+    const user = await this.prisma.user.create({
+      data: {
+        ...createUserDto,
+        password: hashedPassword,
+      },
+      include: {
+        role: true,
+      },
+    });
 
-        // Exclude passwords
-        const sanitizedUsers = users.map(({ password, ...user }) => user);
+    // Exclude password from response
+    const { password, ...result } = user;
+    return result;
+  }
 
-        return {
-            data: sanitizedUsers,
-            meta: createPaginationMeta(page, limit, total),
-        };
-    }
+  async findAll(page = 1, limit = 10) {
+    const { skip, take } = getPaginationParams(page, limit);
 
-    async findOne(id: string) {
-        const user = await this.prisma.user.findUnique({
-            where: { id },
-            include: {
-                role: {
-                    include: {
-                        rolePermissions: {
-                            include: {
-                                permission: true,
-                            },
-                        },
-                    },
-                },
-                userPermissions: {
-                    include: {
-                        permission: true,
-                    },
-                },
+    const [users, total] = await Promise.all([
+      this.prisma.user.findMany({
+        skip,
+        take,
+        include: {
+          role: true,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+      this.prisma.user.count(),
+    ]);
+
+    // Exclude passwords
+    const sanitizedUsers = users.map(({ password, ...user }) => user);
+
+    return {
+      data: sanitizedUsers,
+      meta: createPaginationMeta(page, limit, total),
+    };
+  }
+
+  async findOne(id: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      include: {
+        role: {
+          include: {
+            rolePermissions: {
+              include: {
+                permission: true,
+              },
             },
-        });
+          },
+        },
+        userPermissions: {
+          include: {
+            permission: true,
+          },
+        },
+      },
+    });
 
-        if (!user) {
-            throw new NotFoundException('User not found');
-        }
-
-        const { password, ...result } = user;
-        return result;
+    if (!user) {
+      throw new NotFoundException('User not found');
     }
 
-    async update(id: string, updateUserDto: UpdateUserDto) {
-        const user = await this.prisma.user.findUnique({ where: { id } });
-        if (!user) {
-            throw new NotFoundException('User not found');
-        }
+    const { password, ...result } = user;
+    return result;
+  }
 
-        // Hash password if provided
-        let hashedPassword: string | undefined;
-        if (updateUserDto.password) {
-            hashedPassword = await bcrypt.hash(updateUserDto.password, 10);
-        }
-
-        const updated = await this.prisma.user.update({
-            where: { id },
-            data: {
-                ...updateUserDto,
-                ...(hashedPassword && { password: hashedPassword }),
-            },
-            include: {
-                role: true,
-            },
-        });
-
-        const { password, ...result } = updated;
-        return result;
+  async update(id: string, updateUserDto: UpdateUserDto) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) {
+      throw new NotFoundException('User not found');
     }
 
-    async disable(id: string) {
-        const user = await this.prisma.user.findUnique({ where: { id } });
-        if (!user) {
-            throw new NotFoundException('User not found');
-        }
-
-        const updated = await this.prisma.user.update({
-            where: { id },
-            data: { isActive: false },
-        });
-
-        const { password, ...result } = updated;
-        return result;
+    // Hash password if provided
+    let hashedPassword: string | undefined;
+    if (updateUserDto.password) {
+      hashedPassword = await bcrypt.hash(updateUserDto.password, 10);
     }
+
+    const updated = await this.prisma.user.update({
+      where: { id },
+      data: {
+        ...updateUserDto,
+        ...(hashedPassword && { password: hashedPassword }),
+      },
+      include: {
+        role: true,
+      },
+    });
+
+    const { password, ...result } = updated;
+    return result;
+  }
+
+  async disable(id: string) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const updated = await this.prisma.user.update({
+      where: { id },
+      data: { isActive: false },
+    });
+
+    const { password, ...result } = updated;
+    return result;
+  }
 }
