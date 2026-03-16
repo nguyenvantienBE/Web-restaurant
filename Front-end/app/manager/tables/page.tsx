@@ -29,6 +29,7 @@ const AREA_LABELS: Record<TableArea, string> = {
 
 export default function ManagerTablesPage() {
     const { hasClaim } = useAuth();
+    // Dùng sơ đồ bàn mặc định (tất cả đang trống)
     const [tables, setTables] = useState<Table[]>(mockTables);
     const [modalOpen, setModalOpen] = useState(false);
     const [qrModal, setQrModal] = useState<Table | null>(null);
@@ -66,7 +67,7 @@ export default function ManagerTablesPage() {
     };
 
     const getQRValue = (table: Table) =>
-        `${typeof window !== "undefined" ? window.location.origin : "http://localhost:3000"}/order/${table.tableCode}`;
+        `${typeof window !== "undefined" ? window.location.origin : process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000"}/order/${table.tableCode}`;
 
     return (
         <DashboardLayout>

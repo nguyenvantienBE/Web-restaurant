@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
 import { ChevronDown } from "lucide-react";
+import { useReservationModal } from "@/lib/reservation-modal";
 
 const heroSlides = [
     {
@@ -35,6 +36,7 @@ const heroSlides = [
 
 export function Hero() {
     const { t } = useTranslation();
+    const { open: openReservation } = useReservationModal();
     const [current, setCurrent] = useState(0);
     const [loaded, setLoaded] = useState(false);
 
@@ -115,9 +117,9 @@ export function Hero() {
                 <div
                     className={`flex flex-col sm:flex-row gap-4 transition-all duration-1000 delay-900 ${loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
                 >
-                    <Link href="/reservation" className="btn-gold">
+                    <button type="button" onClick={openReservation} className="btn-gold">
                         {t("hero.cta_reserve")}
-                    </Link>
+                    </button>
                     <Link href="/menu" className="btn-outline-gold">
                         {t("hero.cta_menu")}
                     </Link>

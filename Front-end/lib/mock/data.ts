@@ -192,125 +192,35 @@ export const mockMenuItems: MenuItem[] = [
 ];
 
 // ---- MOCK TABLES -------------------------------------------
+// Giữ sẵn sơ đồ bàn (mã bàn, khu vực, sức chứa) nhưng tất cả ở trạng thái trống
 export const mockTables: Table[] = [
     { id: "t1", tableCode: "A1", area: "indoor", capacity: 2, status: "EMPTY" },
-    { id: "t2", tableCode: "A2", area: "indoor", capacity: 2, status: "ORDERING" },
-    { id: "t3", tableCode: "A3", area: "indoor", capacity: 4, status: "SERVING" },
-    { id: "t4", tableCode: "A4", area: "indoor", capacity: 4, status: "NEED_PAYMENT" },
+    { id: "t2", tableCode: "A2", area: "indoor", capacity: 2, status: "EMPTY" },
+    { id: "t3", tableCode: "A3", area: "indoor", capacity: 4, status: "EMPTY" },
+    { id: "t4", tableCode: "A4", area: "indoor", capacity: 4, status: "EMPTY" },
     { id: "t5", tableCode: "A5", area: "indoor", capacity: 6, status: "EMPTY" },
-    { id: "t6", tableCode: "B1", area: "outdoor", capacity: 2, status: "SEATED" },
+    { id: "t6", tableCode: "B1", area: "outdoor", capacity: 2, status: "EMPTY" },
     { id: "t7", tableCode: "B2", area: "outdoor", capacity: 4, status: "EMPTY" },
-    { id: "t8", tableCode: "B3", area: "outdoor", capacity: 4, status: "NEED_CLEAN" },
+    { id: "t8", tableCode: "B3", area: "outdoor", capacity: 4, status: "EMPTY" },
     { id: "t9", tableCode: "R1", area: "rooftop", capacity: 2, status: "EMPTY" },
-    { id: "t10", tableCode: "R2", area: "rooftop", capacity: 4, status: "SERVING" },
+    { id: "t10", tableCode: "R2", area: "rooftop", capacity: 4, status: "EMPTY" },
     { id: "t11", tableCode: "R3", area: "rooftop", capacity: 6, status: "EMPTY" },
-    { id: "t12", tableCode: "BAR1", area: "bar", capacity: 1, status: "SEATED" },
+    { id: "t12", tableCode: "BAR1", area: "bar", capacity: 1, status: "EMPTY" },
 ];
 
 // ---- MOCK ORDERS -------------------------------------------
-export const mockOrders: Order[] = [
-    {
-        id: "ord1", tableId: "t2", tableCode: "A2", sessionId: "sess1",
-        type: "DINE_IN", status: "NEW",
-        items: [
-            { id: "oi1", orderId: "ord1", menuItemId: "m1", menuItemName: "The Albion Tomato", menuItemNameVi: "Cà Chua The Albion", quantity: 2, unitPrice: 285000, status: "NEW", updatedAt: "2026-02-25T17:45:00Z" },
-            { id: "oi2", orderId: "ord1", menuItemId: "m8", menuItemName: "Albion Negroni", menuItemNameVi: "Negroni Albion", quantity: 2, unitPrice: 220000, status: "NEW", updatedAt: "2026-02-25T17:45:00Z" },
-        ],
-        note: "Allergy: nuts", totalAmount: 1010000,
-        createdAt: "2026-02-25T17:45:00Z", updatedAt: "2026-02-25T17:45:00Z",
-    },
-    {
-        id: "ord2", tableId: "t3", tableCode: "A3", sessionId: "sess2",
-        type: "DINE_IN", status: "IN_PROGRESS",
-        items: [
-            { id: "oi3", orderId: "ord2", menuItemId: "m4", menuItemName: "Roast Lamb", menuItemNameVi: "Thịt Cừu Nướng", quantity: 2, unitPrice: 650000, status: "COOKING", updatedAt: "2026-02-25T18:00:00Z" },
-            { id: "oi4", orderId: "ord2", menuItemId: "m5", menuItemName: "Roasted Scallops", menuItemNameVi: "Sò Điệp Nướng", quantity: 1, unitPrice: 480000, status: "READY", updatedAt: "2026-02-25T18:05:00Z" },
-            { id: "oi5", orderId: "ord2", menuItemId: "m7", menuItemName: "Eton Mess", menuItemNameVi: "Eton Mess", quantity: 2, unitPrice: 195000, status: "NEW", updatedAt: "2026-02-25T18:00:00Z" },
-        ],
-        totalAmount: 1970000, createdAt: "2026-02-25T18:00:00Z", updatedAt: "2026-02-25T18:05:00Z",
-        confirmedAt: "2026-02-25T18:02:00Z",
-    },
-    {
-        id: "ord3", tableId: "t4", tableCode: "A4", sessionId: "sess3",
-        type: "DINE_IN", status: "SERVED",
-        items: [
-            { id: "oi6", orderId: "ord3", menuItemId: "m2", menuItemName: "Oysters Natural", menuItemNameVi: "Hàu Tươi", quantity: 1, unitPrice: 350000, status: "SERVED", updatedAt: "2026-02-25T17:30:00Z" },
-            { id: "oi7", orderId: "ord3", menuItemId: "m4", menuItemName: "Roast Lamb", menuItemNameVi: "Thịt Cừu Nướng", quantity: 1, unitPrice: 650000, status: "SERVED", updatedAt: "2026-02-25T17:50:00Z" },
-        ],
-        totalAmount: 1000000, createdAt: "2026-02-25T17:00:00Z", updatedAt: "2026-02-25T17:50:00Z",
-        confirmedAt: "2026-02-25T17:05:00Z",
-    },
-    {
-        id: "ord4", type: "TAKEAWAY", status: "CONFIRMED",
-        customerName: "Nguyễn Minh", customerPhone: "0908123456",
-        pickupTime: "2026-02-25T19:00:00Z",
-        items: [
-            { id: "oi8", orderId: "ord4", menuItemId: "m1", menuItemName: "The Albion Tomato", menuItemNameVi: "Cà Chua The Albion", quantity: 1, unitPrice: 285000, status: "COOKING", updatedAt: "2026-02-25T18:10:00Z" },
-            { id: "oi9", orderId: "ord4", menuItemId: "m10", menuItemName: "Fresh Lemonade", menuItemNameVi: "Nước Chanh Tươi", quantity: 2, unitPrice: 85000, status: "READY", updatedAt: "2026-02-25T18:12:00Z" },
-        ],
-        totalAmount: 455000, createdAt: "2026-02-25T18:10:00Z", updatedAt: "2026-02-25T18:12:00Z",
-        confirmedAt: "2026-02-25T18:11:00Z",
-    },
-];
+// Xoá dữ liệu demo, để trống – sẽ dùng dữ liệu thật từ backend
+export const mockOrders: Order[] = [];
 
 // ---- MOCK RESERVATIONS -------------------------------------
-export const mockReservations: Reservation[] = [
-    {
-        id: "res1", customerName: "Trần Thanh Hương", customerPhone: "0901234567",
-        customerEmail: "huong@gmail.com", partySize: 4,
-        date: "2026-02-26", time: "19:00", area: "rooftop",
-        note: "Anniversary dinner", status: "PENDING",
-        createdAt: "2026-02-25T10:00:00Z",
-    },
-    {
-        id: "res2", customerName: "Lê Minh Tú", customerPhone: "0912345678",
-        partySize: 2, date: "2026-02-26", time: "18:00",
-        area: "indoor", status: "CONFIRMED",
-        createdAt: "2026-02-24T15:00:00Z",
-    },
-    {
-        id: "res3", customerName: "Phạm Quốc Bảo", customerPhone: "0923456789",
-        partySize: 6, date: "2026-02-25", time: "20:00",
-        area: "outdoor", note: "Birthday party",
-        status: "CANCELLED", createdAt: "2026-02-23T09:00:00Z",
-    },
-    {
-        id: "res4", customerName: "Nguyễn Thị Mai", customerPhone: "0934567890",
-        partySize: 2, date: "2026-02-27", time: "19:30",
-        area: "bar", status: "PENDING", createdAt: "2026-02-25T14:00:00Z",
-    },
-];
+// Đã xoá dữ liệu demo, để trống cho dữ liệu thật từ backend
+export const mockReservations: Reservation[] = [];
 
 // ---- MOCK STAFF CALLS --------------------------------------
-export const mockStaffCalls: StaffCall[] = [
-    {
-        id: "sc1", tableCode: "A3", tableId: "t3",
-        requestedAt: "2026-02-25T18:10:00Z",
-        isResolved: false,
-    },
-    {
-        id: "sc2", tableCode: "R2", tableId: "t10",
-        requestedAt: "2026-02-25T18:05:00Z",
-        handledAt: "2026-02-25T18:07:00Z",
-        handledBy: "u3", isResolved: true,
-    },
-];
+export const mockStaffCalls: StaffCall[] = [];
 
 // ---- MOCK AUDIT LOGS ---------------------------------------
-export const mockAuditLogs: AuditLog[] = [
-    {
-        id: "al1", action: "ORDER_CONFIRMED", performedBy: "u3", performedByName: "Lê Thu Ngân",
-        targetId: "ord2", timestamp: "2026-02-25T18:02:00Z",
-    },
-    {
-        id: "al2", action: "ITEM_COOK_UPDATE", performedBy: "u4", performedByName: "Phạm Bếp Trưởng",
-        targetId: "oi4", meta: { from: "COOKING", to: "READY" }, timestamp: "2026-02-25T18:05:00Z",
-    },
-    {
-        id: "al3", action: "STAFF_CALL_HANDLED", performedBy: "u3", performedByName: "Lê Thu Ngân",
-        targetId: "sc2", timestamp: "2026-02-25T18:07:00Z",
-    },
-];
+export const mockAuditLogs: AuditLog[] = [];
 
 // ---- SYSTEM CONFIG -----------------------------------------
 export const mockSystemConfig: SystemConfig = {
@@ -327,8 +237,4 @@ export const mockSystemConfig: SystemConfig = {
 };
 
 // ---- TABLE SESSION MOCK ------------------------------------
-export const mockSessions: TableSession[] = [
-    { id: "sess1", tableId: "t2", tableCode: "A2", status: "OPEN", openedAt: "2026-02-25T17:40:00Z" },
-    { id: "sess2", tableId: "t3", tableCode: "A3", status: "OPEN", openedAt: "2026-02-25T17:55:00Z", customerCount: 3 },
-    { id: "sess3", tableId: "t4", tableCode: "A4", status: "OPEN", openedAt: "2026-02-25T17:00:00Z", customerCount: 2 },
-];
+export const mockSessions: TableSession[] = [];

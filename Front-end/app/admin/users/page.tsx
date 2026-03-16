@@ -2,216 +2,408 @@
 
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { mockUsers, ROLE_CLAIMS } from "@/lib/mock/data";
-import { User, ClaimValue, CLAIMS } from "@/lib/types";
+import { useUsers, useCreateUser, useDisableUser, useEnableUser, useUpdateUser, useRoles, ApiUser } from "@/lib/hooks/useUsers";
+import { CLAIMS } from "@/lib/types";
 import { useAuth } from "@/lib/auth";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Plus, Search, Shield, UserCheck, UserX, Eye, X, UsersIcon } from "lucide-react";
+import { Plus, Search, UserCheck, UserX, Eye, X, UsersIcon, Loader2, RefreshCw } from "lucide-react";
 
-const inviteSchema = z.object({
-    fullName: z.string().min(2, "Nhập họ tên"),
+const createSchema = z.object({
+    fullName: z.string().min(2, "Nhập họ tên (tối thiểu 2 ký tự)"),
     email: z.string().email("Email không hợp lệ"),
-    role: z.enum(["cashier", "kitchen", "manager"]),
+    password: z.string().min(6, "Mật khẩu tối thiểu 6 ký tự"),
+    roleId: z.string().min(1, "Chọn vai trò"),
 });
-type InviteForm = z.infer<typeof inviteSchema>;
+type CreateForm = z.infer<typeof createSchema>;
 
 const ROLE_STYLES: Record<string, { label: string; cls: string }> = {
-    admin: { label: "Quản trị", cls: "bg-purple-500/15 text-purple-400 border-purple-500/30" },
-    manager: { label: "Quản lý", cls: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
-    cashier: { label: "Thu ngân", cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
-    kitchen: { label: "Bếp", cls: "bg-orange-500/15 text-orange-400 border-orange-500/30" },
+    Admin: { label: "Quản trị", cls: "bg-violet-500/12 text-violet-300 border-violet-500/20" },
+    Manager: { label: "Quản lý", cls: "bg-sky-500/12 text-sky-300 border-sky-500/20" },
+    Cashier: { label: "Thu ngân", cls: "bg-teal-500/12 text-teal-300 border-teal-500/20" },
+    Kitchen: { label: "Bếp", cls: "bg-amber-500/12 text-amber-300 border-amber-500/20" },
 };
 
+function getRoleStyle(roleName: string) {
+    return ROLE_STYLES[roleName] ?? { label: roleName, cls: "bg-white/5 text-cream/70 border-white/10" };
+}
+
+function RoleEditModal({
+    user,
+    roles,
+    getRoleStyle,
+    onClose,
+    onSave,
+    isSaving,
+}: {
+    user: ApiUser;
+    roles: Array<{ id: string; name: string }>;
+    getRoleStyle: (name: string) => { label: string; cls: string };
+    onClose: () => void;
+    onSave: (roleId: string) => Promise<void>;
+    isSaving: boolean;
+}) {
+    const [selectedRoleId, setSelectedRoleId] = useState(user.roleId);
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={onClose}>
+            <div className="w-full max-w-md rounded-2xl border border-white/10 bg-charcoal shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center justify-between px-6 py-5 border-b border-white/10">
+                    <div>
+                        <h3 className="text-xl font-semibold text-cream">Đổi vai trò</h3>
+                        <p className="mt-1 text-base text-cream/60">{user.fullName}</p>
+                    </div>
+                    <button onClick={onClose} className="p-2 rounded-lg text-cream/50 hover:bg-white/5 hover:text-cream transition-colors">
+                        <X size={20} />
+                    </button>
+                </div>
+                <div className="p-6 space-y-5">
+                    <div>
+                        <p className="text-sm font-medium text-cream/70 mb-2">Vai trò hiện tại</p>
+                        <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium border ${getRoleStyle(user.role.name).cls}`}>
+                            {getRoleStyle(user.role.name).label}
+                        </span>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-cream/70 mb-2">Chọn vai trò mới</label>
+                        <select
+                            value={selectedRoleId}
+                            onChange={(e) => setSelectedRoleId(e.target.value)}
+                            className="w-full rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-base text-cream focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold/40"
+                        >
+                            {roles.map((r) => (
+                                <option key={r.id} value={r.id}>
+                                    {getRoleStyle(r.name).label} ({r.name})
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="flex gap-3 pt-2">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="flex-1 py-3 rounded-xl border border-white/15 text-cream/80 text-base font-medium hover:bg-white/5 transition-colors"
+                        >
+                            Huỷ
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => onSave(selectedRoleId)}
+                            disabled={isSaving || selectedRoleId === user.roleId}
+                            className="flex-1 py-3 rounded-xl bg-gold text-charcoal text-base font-medium hover:bg-gold-light transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                        >
+                            {isSaving ? <><Loader2 size={18} className="animate-spin" /> Đang lưu...</> : "Lưu thay đổi"}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function AdminUsersPage() {
-    const { hasClaim } = useAuth();
-    const [users, setUsers] = useState<User[]>(mockUsers);
+    const { hasClaim, user: me } = useAuth();
+    const { data: users = [], isLoading, refetch } = useUsers();
+    const { data: roles = [] } = useRoles();
+    const createUser = useCreateUser();
+    const disableUser = useDisableUser();
+    const enableUser = useEnableUser();
+    const updateUser = useUpdateUser();
+
     const [search, setSearch] = useState("");
-    const [inviteOpen, setInviteOpen] = useState(false);
-    const [claimsView, setClaimsView] = useState<User | null>(null);
+    const [createOpen, setCreateOpen] = useState(false);
+    const [roleEditUser, setRoleEditUser] = useState<ApiUser | null>(null);
     const [roleFilter, setRoleFilter] = useState<string>("all");
 
-    const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<InviteForm>({
-        resolver: zodResolver(inviteSchema) as never,
-        defaultValues: { role: "cashier" },
+    const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<CreateForm>({
+        resolver: zodResolver(createSchema) as never,
     });
 
     const filtered = users.filter((u) => {
-        const matchSearch = u.fullName.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase());
-        const matchRole = roleFilter === "all" || u.role === roleFilter;
+        const matchSearch =
+            u.fullName.toLowerCase().includes(search.toLowerCase()) ||
+            u.email.toLowerCase().includes(search.toLowerCase());
+        const matchRole = roleFilter === "all" || u.role.name === roleFilter;
         return matchSearch && matchRole;
     });
 
-    const onInvite = async (data: InviteForm) => {
-        await new Promise(r => setTimeout(r, 500));
-        const newUser: User = {
-            id: `u_${Date.now()}`, email: data.email, fullName: data.fullName,
-            role: data.role, claims: ROLE_CLAIMS[data.role],
-            isActive: true, createdAt: new Date().toISOString(),
-        };
-        setUsers(prev => [...prev, newUser]);
-        toast.success("Đã mời nhân viên mới!");
-        reset(); setInviteOpen(false);
+    const onCreateSubmit = async (data: CreateForm) => {
+        try {
+            await createUser.mutateAsync(data);
+            toast.success("Đã tạo tài khoản nhân viên mới!");
+            reset();
+            setCreateOpen(false);
+        } catch (err: unknown) {
+            toast.error(err instanceof Error ? err.message : "Tạo tài khoản thất bại");
+        }
     };
 
-    const toggleActive = (id: string) => {
-        setUsers(prev => prev.map(u => u.id === id ? { ...u, isActive: !u.isActive } : u));
-        toast.success("Đã cập nhật trạng thái tài khoản");
+    const handleToggleActive = async (user: ApiUser) => {
+        try {
+            if (user.isActive) {
+                await disableUser.mutateAsync(user.id);
+                toast.success(`Đã khoá tài khoản ${user.fullName}`);
+            } else {
+                await enableUser.mutateAsync(user.id);
+                toast.success(`Đã mở khoá tài khoản ${user.fullName}`);
+            }
+        } catch {
+            toast.error("Cập nhật thất bại");
+        }
     };
 
-    const activeCount = users.filter(u => u.isActive).length;
+    const activeCount = users.filter((u) => u.isActive).length;
+    const uniqueRoleNames = Array.from(new Set(users.map((u) => u.role.name)));
 
     return (
         <DashboardLayout>
-            <div className="space-y-5 animate-fade-up">
+            <div className="space-y-6 animate-fade-up">
 
                 {/* Header */}
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
                     <div>
-                        <h1 className="section-title">Quản lý người dùng</h1>
-                        <p className="section-sub">{users.length} tài khoản · {activeCount} đang hoạt động</p>
+                        <h1 className="text-2xl font-semibold text-cream tracking-tight">
+                            Quản lý người dùng
+                        </h1>
+                        <p className="mt-1.5 text-base text-cream/50">
+                            {isLoading ? "Đang tải..." : `${users.length} tài khoản · ${activeCount} đang hoạt động`}
+                        </p>
                     </div>
-                    {hasClaim(CLAIMS.USER_CREATE) && (
-                        <button onClick={() => setInviteOpen(true)} className="btn-gold">
-                            <Plus size={14} /> Mời nhân viên
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => refetch()}
+                            className="flex items-center justify-center w-11 h-11 rounded-xl border border-white/10 text-cream/60 hover:bg-white/5 hover:text-cream transition-colors disabled:opacity-50"
+                            disabled={isLoading}
+                        >
+                            {isLoading ? <Loader2 size={20} className="animate-spin" /> : <RefreshCw size={20} />}
                         </button>
-                    )}
+                        {hasClaim(CLAIMS.USER_CREATE) && (
+                            <button
+                                onClick={() => setCreateOpen(true)}
+                                className="inline-flex items-center gap-2.5 px-5 py-3 rounded-xl bg-gold text-charcoal text-base font-medium hover:bg-gold-light transition-colors"
+                            >
+                                <Plus size={20} /> Thêm nhân viên
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 {/* Filters */}
-                <div className="dash-card p-4 flex flex-wrap gap-3 items-center">
-                    <div className="flex items-center flex-1 min-w-[200px] input-dark gap-2 px-3">
-                        <Search size={13} className="shrink-0" style={{ color: "rgba(245,240,232,0.25)" }} />
-                        <input value={search} onChange={e => setSearch(e.target.value)}
+                <div className="rounded-xl border border-white/10 bg-white/[0.02] p-5 flex flex-col sm:flex-row gap-5 sm:items-center">
+                    <div className="flex-1 min-w-0 flex items-center gap-3 rounded-xl bg-white/5 border border-white/10 px-4 py-3.5">
+                        <Search size={20} className="shrink-0 text-cream/40" />
+                        <input
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
                             placeholder="Tìm theo tên, email..."
-                            className="flex-1 bg-transparent outline-none text-sm min-w-0"
-                            style={{ color: "#F5F0E8" }} />
+                            className="flex-1 min-w-0 bg-transparent outline-none text-base text-cream placeholder:text-cream/30"
+                        />
                     </div>
-                    <div className="flex gap-1.5">
-                        {["all", "admin", "manager", "cashier", "kitchen"].map(r => (
-                            <button key={r} onClick={() => setRoleFilter(r)}
-                                className="px-5 py-2.5 text-sm font-medium rounded transition-all border"
-                                style={{
-                                    border: roleFilter === r ? "1px solid rgba(201,169,110,0.5)" : "1px solid rgba(255,255,255,0.08)",
-                                    background: roleFilter === r ? "rgba(201,169,110,0.1)" : "transparent",
-                                    color: roleFilter === r ? "#C9A96E" : "rgba(245,240,232,0.4)",
-                                }}>
-                                {r === "all" ? "Tất cả" : ROLE_STYLES[r]?.label}
+                    <div className="flex flex-wrap gap-3">
+                        {["all", ...uniqueRoleNames].map((r) => (
+                            <button
+                                key={r}
+                                onClick={() => setRoleFilter(r)}
+                                className={`px-5 py-3 rounded-xl text-base font-medium transition-all ${
+                                    roleFilter === r
+                                        ? "bg-gold/20 text-gold border border-gold/40"
+                                        : "bg-white/5 text-cream/70 border border-white/10 hover:bg-white/10 hover:text-cream/90"
+                                }`}
+                            >
+                                {r === "all" ? "Tất cả" : getRoleStyle(r).label}
                             </button>
                         ))}
                     </div>
                 </div>
 
+                {/* Loading */}
+                {isLoading && (
+                    <div className="flex items-center justify-center py-24 gap-4 text-cream/50">
+                        <Loader2 size={28} className="animate-spin text-gold" />
+                        <span className="text-base">Đang tải...</span>
+                    </div>
+                )}
+
                 {/* Table */}
-                <div className="dash-card overflow-hidden">
-                    <table className="data-table">
-                        <thead>
-                            <tr>
-                                <th>Nhân viên</th>
-                                <th>Vai trò</th>
-                                <th>Trạng thái</th>
-                                <th>Đăng nhập lần cuối</th>
-                                <th className="text-right">Thao tác</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filtered.map(user => (
-                                <tr key={user.id}>
-                                    <td>
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-                                                style={{ background: "rgba(201,169,110,0.12)", color: "#C9A96E", border: "1px solid rgba(201,169,110,0.2)" }}>
-                                                {user.fullName[0]}
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-medium" style={{ color: "#F5F0E8" }}>{user.fullName}</p>
-                                                <p className="text-[11px]" style={{ color: "rgba(245,240,232,0.3)" }}>{user.email}</p>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold border tracking-wide ${ROLE_STYLES[user.role]?.cls}`}>
-                                            {ROLE_STYLES[user.role]?.label}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span className="flex items-center gap-1.5 text-xs">
-                                            <span className={`w-1.5 h-1.5 rounded-full ${user.isActive ? "bg-emerald-400" : "bg-slate-500"}`} />
-                                            <span style={{ color: user.isActive ? "rgba(52,211,153,0.9)" : "rgba(245,240,232,0.3)" }}>
-                                                {user.isActive ? "Hoạt động" : "Tạm khoá"}
-                                            </span>
-                                        </span>
-                                    </td>
-                                    <td className="text-xs" style={{ color: "rgba(245,240,232,0.35)" }}>
-                                        {user.lastLogin ? new Date(user.lastLogin).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" }) : "Chưa đăng nhập"}
-                                    </td>
-                                    <td>
-                                        <div className="flex items-center justify-end gap-1.5">
-                                            {hasClaim(CLAIMS.CLAIM_ASSIGN) && (
-                                                <button onClick={() => setClaimsView(user)}
-                                                    className="btn-ghost px-2.5 py-1 text-[11px]">
-                                                    <Eye size={11} /> Quyền
-                                                </button>
-                                            )}
-                                            {hasClaim(CLAIMS.USER_DISABLE) && user.role !== "admin" && (
-                                                <button onClick={() => toggleActive(user.id)}
-                                                    className={user.isActive ? "btn-danger px-2.5 py-1 text-[11px]" : "btn-ghost px-2.5 py-1 text-[11px]"}>
-                                                    {user.isActive ? <><UserX size={11} /> Khoá</> : <><UserCheck size={11} /> Mở</>}
-                                                </button>
-                                            )}
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                    {filtered.length === 0 && (
-                        <div className="py-12 text-center" style={{ color: "rgba(245,240,232,0.25)" }}>
-                            <UsersIcon size={32} className="mx-auto mb-3 opacity-30" />
-                            <p className="text-sm">Không tìm thấy nhân viên</p>
+                {!isLoading && (
+                    <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="border-b border-white/10 bg-white/[0.03]">
+                                        <th className="text-left py-5 px-6 text-sm font-semibold uppercase tracking-wider text-cream/40">
+                                            Nhân viên
+                                        </th>
+                                        <th className="text-left py-5 px-6 text-sm font-semibold uppercase tracking-wider text-cream/40">
+                                            Vai trò
+                                        </th>
+                                        <th className="text-left py-5 px-6 text-sm font-semibold uppercase tracking-wider text-cream/40">
+                                            Trạng thái
+                                        </th>
+                                        <th className="text-left py-5 px-6 text-sm font-semibold uppercase tracking-wider text-cream/40">
+                                            Ngày tạo
+                                        </th>
+                                        <th className="text-right py-5 px-6 text-sm font-semibold uppercase tracking-wider text-cream/40">
+                                            Thao tác
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filtered.map((user) => {
+                                        const roleStyle = getRoleStyle(user.role.name);
+                                        const isMe = user.id === me?.id;
+                                        return (
+                                            <tr
+                                                key={user.id}
+                                                className="border-b border-white/5 hover:bg-white/[0.02] transition-colors"
+                                            >
+                                                <td className="py-5 px-6">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-12 h-12 rounded-full flex items-center justify-center text-base font-semibold shrink-0 bg-gold/15 text-gold border border-gold/25">
+                                                            {user.fullName[0]?.toUpperCase()}
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-base font-medium text-cream">
+                                                                {user.fullName}
+                                                                {isMe && <span className="ml-2 text-sm text-gold/70">(Bạn)</span>}
+                                                            </p>
+                                                            <p className="text-sm text-cream/40 mt-0.5">{user.email}</p>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="py-5 px-6">
+                                                    <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium border ${roleStyle.cls}`}>
+                                                        {roleStyle.label}
+                                                    </span>
+                                                </td>
+                                                <td className="py-5 px-6">
+                                                    <span className="inline-flex items-center gap-2 text-sm">
+                                                        <span className={`w-2.5 h-2.5 rounded-full ${user.isActive ? "bg-emerald-500" : "bg-cream/30"}`} />
+                                                        <span className={user.isActive ? "text-emerald-400" : "text-cream/40"}>
+                                                            {user.isActive ? "Hoạt động" : "Tạm khoá"}
+                                                        </span>
+                                                    </span>
+                                                </td>
+                                                <td className="py-5 px-6 text-sm text-cream/45">
+                                                    {new Date(user.createdAt).toLocaleDateString("vi-VN")}
+                                                </td>
+                                                <td className="py-5 px-6">
+                                                    <div className="flex items-center justify-end gap-3">
+                                                        {hasClaim(CLAIMS.USER_UPDATE) && (
+                                                            <button
+                                                                onClick={() => setRoleEditUser(user)}
+                                                                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-cream/80 border border-white/15 hover:bg-white/5 hover:text-cream transition-colors"
+                                                            >
+                                                                <Eye size={18} /> Quyền
+                                                            </button>
+                                                        )}
+                                                        {hasClaim(CLAIMS.USER_DISABLE) && !isMe && (
+                                                            <button
+                                                                onClick={() => handleToggleActive(user)}
+                                                                disabled={disableUser.isPending || enableUser.isPending}
+                                                                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                                                                    user.isActive
+                                                                        ? "text-red-400 border border-red-500/30 hover:bg-red-500/10"
+                                                                        : "text-cream/80 border border-white/15 hover:bg-white/5 hover:text-cream"
+                                                                }`}
+                                                            >
+                                                                {user.isActive ? <><UserX size={18} /> Khoá</> : <><UserCheck size={18} /> Mở</>}
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
                         </div>
-                    )}
-                </div>
+                        {filtered.length === 0 && (
+                            <div className="py-20 text-center">
+                                <UsersIcon size={48} className="mx-auto mb-5 text-cream/20" />
+                                <p className="text-base text-cream/40">Không tìm thấy nhân viên</p>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
-            {/* Invite Modal */}
-            {inviteOpen && (
-                <div className="modal-overlay" onClick={() => setInviteOpen(false)}>
-                    <div className="modal-box max-w-md" onClick={e => e.stopPropagation()}>
-                        <div className="flex items-center justify-between px-6 pt-6 pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+            {/* Create User Modal */}
+            {createOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => setCreateOpen(false)}>
+                    <div className="w-full max-w-md rounded-2xl border border-white/10 bg-charcoal shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-between px-6 py-5 border-b border-white/10">
                             <div>
-                                <h3 className="font-serif text-lg" style={{ color: "#F5F0E8" }}>Mời nhân viên</h3>
-                                <p className="text-xs mt-0.5" style={{ color: "rgba(245,240,232,0.35)" }}>Gửi lời mời qua email</p>
+                                <h3 className="text-xl font-semibold text-cream">Tạo tài khoản nhân viên</h3>
+                                <p className="mt-1 text-base text-cream/50">Thêm nhân viên mới vào hệ thống</p>
                             </div>
-                            <button onClick={() => setInviteOpen(false)} className="p-1 rounded hover:bg-white/5" style={{ color: "rgba(245,240,232,0.3)" }}>
-                                <X size={16} />
+                            <button onClick={() => setCreateOpen(false)} className="p-2 rounded-lg text-cream/50 hover:bg-white/5 hover:text-cream transition-colors">
+                                <X size={20} />
                             </button>
                         </div>
-                        <form onSubmit={handleSubmit(onInvite)} className="p-6 space-y-4">
+                        <form onSubmit={handleSubmit(onCreateSubmit)} className="p-6 space-y-5">
                             <div>
-                                <label className="block text-[11px] font-medium tracking-widest uppercase mb-1.5" style={{ color: "rgba(245,240,232,0.4)" }}>Họ và tên *</label>
-                                <input {...register("fullName")} className="input-dark" placeholder="Nguyễn Văn A" />
-                                {errors.fullName && <p className="text-red-400 text-xs mt-1">{errors.fullName.message}</p>}
+                                <label className="block text-sm font-medium text-cream/70 mb-2">Họ và tên *</label>
+                                <input
+                                    {...register("fullName")}
+                                    className="w-full rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-base text-cream placeholder:text-cream/30 focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold/40"
+                                    placeholder="Nguyễn Văn A"
+                                />
+                                {errors.fullName && <p className="mt-1 text-sm text-red-400">{errors.fullName.message}</p>}
                             </div>
                             <div>
-                                <label className="block text-[11px] font-medium tracking-widest uppercase mb-1.5" style={{ color: "rgba(245,240,232,0.4)" }}>Email *</label>
-                                <input {...register("email")} type="email" className="input-dark" placeholder="email@albion.vn" />
-                                {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email.message}</p>}
+                                <label className="block text-sm font-medium text-cream/70 mb-2">Email *</label>
+                                <input
+                                    {...register("email")}
+                                    type="email"
+                                    className="w-full rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-base text-cream placeholder:text-cream/30 focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold/40"
+                                    placeholder="nhanvien@restaurant.com"
+                                />
+                                {errors.email && <p className="mt-1 text-sm text-red-400">{errors.email.message}</p>}
                             </div>
                             <div>
-                                <label className="block text-[11px] font-medium tracking-widest uppercase mb-1.5" style={{ color: "rgba(245,240,232,0.4)" }}>Vai trò *</label>
-                                <select {...register("role")} className="input-dark">
-                                    <option value="cashier">Thu ngân</option>
-                                    <option value="kitchen">Bếp</option>
-                                    <option value="manager">Quản lý</option>
+                                <label className="block text-sm font-medium text-cream/70 mb-2">Mật khẩu *</label>
+                                <input
+                                    {...register("password")}
+                                    type="password"
+                                    className="w-full rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-base text-cream placeholder:text-cream/30 focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold/40"
+                                    placeholder="Tối thiểu 6 ký tự"
+                                />
+                                {errors.password && <p className="mt-1 text-sm text-red-400">{errors.password.message}</p>}
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-cream/70 mb-2">Vai trò *</label>
+                                <select
+                                    {...register("roleId")}
+                                    className="w-full rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-base text-cream focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold/40"
+                                >
+                                    <option value="">-- Chọn vai trò --</option>
+                                    {roles
+                                        .filter((r) => r.name !== "Admin")
+                                        .map((r) => (
+                                            <option key={r.id} value={r.id}>
+                                                {getRoleStyle(r.name).label} ({r.name})
+                                            </option>
+                                        ))}
                                 </select>
+                                {errors.roleId && <p className="mt-1 text-sm text-red-400">{errors.roleId.message}</p>}
                             </div>
-                            <div className="flex gap-2 pt-2">
-                                <button type="button" onClick={() => setInviteOpen(false)} className="btn-ghost flex-1">Huỷ</button>
-                                <button type="submit" disabled={isSubmitting} className="btn-gold flex-1 justify-center">
-                                    {isSubmitting ? "Đang gửi..." : "Gửi lời mời"}
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => { setCreateOpen(false); reset(); }}
+                                    className="flex-1 py-3 rounded-xl border border-white/15 text-cream/80 text-base font-medium hover:bg-white/5 transition-colors"
+                                >
+                                    Huỷ
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isSubmitting || createUser.isPending}
+                                    className="flex-1 py-3 rounded-xl bg-gold text-charcoal text-base font-medium hover:bg-gold-light transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                                >
+                                    {isSubmitting || createUser.isPending ? <><Loader2 size={18} className="animate-spin" /> Đang tạo...</> : "Tạo tài khoản"}
                                 </button>
                             </div>
                         </form>
@@ -219,31 +411,24 @@ export default function AdminUsersPage() {
                 </div>
             )}
 
-            {/* Claims viewer modal */}
-            {claimsView && (
-                <div className="modal-overlay" onClick={() => setClaimsView(null)}>
-                    <div className="modal-box max-w-lg" onClick={e => e.stopPropagation()}>
-                        <div className="flex items-center justify-between px-6 pt-6 pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                            <div>
-                                <h3 className="font-serif text-lg" style={{ color: "#F5F0E8" }}>Phân quyền — {claimsView.fullName}</h3>
-                                <p className="text-xs mt-0.5" style={{ color: "rgba(245,240,232,0.35)" }}>{claimsView.claims.length} quyền được cấp</p>
-                            </div>
-                            <button onClick={() => setClaimsView(null)} className="p-1 rounded hover:bg-white/5" style={{ color: "rgba(245,240,232,0.3)" }}>
-                                <X size={16} />
-                            </button>
-                        </div>
-                        <div className="p-6">
-                            <div className="flex flex-wrap gap-2">
-                                {claimsView.claims.map((c: ClaimValue) => (
-                                    <span key={c} className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-mono font-medium border"
-                                        style={{ background: "rgba(201,169,110,0.08)", color: "rgba(201,169,110,0.8)", borderColor: "rgba(201,169,110,0.2)" }}>
-                                        <Shield size={9} /> {c}
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            {/* Modal đổi vai trò — admin có thể thay đổi quyền (vai trò) người đó */}
+            {roleEditUser && (
+                <RoleEditModal
+                    user={roleEditUser}
+                    roles={roles}
+                    getRoleStyle={getRoleStyle}
+                    onClose={() => setRoleEditUser(null)}
+                    onSave={async (newRoleId) => {
+                        try {
+                            await updateUser.mutateAsync({ id: roleEditUser.id, roleId: newRoleId });
+                            toast.success(`Đã đổi vai trò của ${roleEditUser.fullName}`);
+                            setRoleEditUser(null);
+                        } catch (err) {
+                            toast.error(err instanceof Error ? err.message : "Đổi vai trò thất bại");
+                        }
+                    }}
+                    isSaving={updateUser.isPending}
+                />
             )}
         </DashboardLayout>
     );

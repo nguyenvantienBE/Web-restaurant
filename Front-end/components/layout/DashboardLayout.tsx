@@ -28,11 +28,11 @@ const navItems: NavItem[] = [
     { label: "Staff Calls", labelVi: "Gọi nhân viên", href: "/cashier/staff-calls", icon: <Bell size={20} />, roles: ["cashier"] },
     // Kitchen
     { label: "Kitchen", labelVi: "Bếp", href: "/kitchen", icon: <ChefHat size={20} />, roles: ["kitchen"] },
-    // Manager
-    { label: "Overview", labelVi: "Tổng quan", href: "/manager", icon: <BarChart3 size={20} />, roles: ["manager", "admin"] },
-    { label: "Menu", labelVi: "Thực đơn", href: "/manager/menu", icon: <UtensilsCrossed size={20} />, roles: ["manager", "admin"] },
-    { label: "Tables", labelVi: "Bàn & QR", href: "/manager/tables", icon: <Table2 size={20} />, roles: ["manager", "admin"] },
-    { label: "Reservations", labelVi: "Đặt bàn", href: "/manager/reservations", icon: <CalendarDays size={20} />, roles: ["manager", "admin"] },
+    // Manager (chỉ dành cho role manager, không hiện cho admin)
+    { label: "Overview", labelVi: "Tổng quan", href: "/manager", icon: <BarChart3 size={20} />, roles: ["manager"] },
+    { label: "Menu", labelVi: "Thực đơn", href: "/manager/menu", icon: <UtensilsCrossed size={20} />, roles: ["manager"] },
+    { label: "Tables", labelVi: "Bàn & QR", href: "/manager/tables", icon: <Table2 size={20} />, roles: ["manager"] },
+    { label: "Reservations", labelVi: "Đặt bàn", href: "/manager/reservations", icon: <CalendarDays size={20} />, roles: ["manager"] },
     { label: "Reports", labelVi: "Báo cáo", href: "/manager/reports", icon: <BarChart3 size={20} />, roles: ["manager"] },
     // Admin
     { label: "Users", labelVi: "Người dùng", href: "/admin/users", icon: <Users size={20} />, roles: ["admin"] },
@@ -84,8 +84,18 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     };
 
     // Only compute nav after mount (user comes from sessionStorage → null on SSR)
+    // user.role có thể là string "Admin" hoặc object {id, name} tùy sessionStorage
+    const getRoleString = (role: unknown): string => {
+        if (!role) return "";
+        if (typeof role === "string") return role.toLowerCase();
+        if (typeof role === "object" && role !== null && "name" in role)
+            return (role as { name: string }).name.toLowerCase();
+        return String(role).toLowerCase();
+    };
+    const userRole = getRoleString(user?.role);
+
     const filteredNav = mounted ? navItems.filter((item) =>
-        user ? item.roles.includes(user.role) : false
+        user ? item.roles.includes(userRole) : false
     ) : [];
     const deduped = filteredNav.reduce<NavItem[]>((acc, item) => {
         if (!acc.find((a) => a.href === item.href)) acc.push(item);
@@ -93,7 +103,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     }, []);
 
     const lang = i18n.language === "vi" ? "vi" : "en";
-    const roleColor = ROLE_COLORS[user?.role ?? "cashier"];
+    const normalizedRole = userRole || "cashier";
+    const roleColor = ROLE_COLORS[normalizedRole] ?? ROLE_COLORS["cashier"];
 
     return (
         <div className="flex h-screen overflow-hidden" style={{ background: "#0A0A0A" }}>
@@ -115,19 +126,18 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
                 {/* Logo */}
                 <div className={cn(
-                    "flex items-center border-b transition-all duration-300",
+                    "flex items-center border-b border-white/10 transition-all duration-300",
                     sidebarOpen ? "px-5 py-4 gap-3" : "px-0 py-4 justify-center"
-                )} style={{ borderColor: "rgba(255,255,255,0.06)" }}>
+                )}>
                     {sidebarOpen && (
                         <div className="flex-1 min-w-0">
-                            <p className="text-xs tracking-[0.2em] uppercase" style={{ color: "rgba(201,169,110,0.6)" }}>The Albion</p>
-                            <p className="font-serif text-base leading-tight" style={{ color: "#F5F0E8" }}>Management</p>
+                            <p className="text-[10px] tracking-[0.2em] uppercase text-gold/70">The Albion</p>
+                            <p className="text-sm font-semibold text-cream tracking-tight">Management</p>
                         </div>
                     )}
                     <button
                         onClick={() => setSidebarOpen(!sidebarOpen)}
-                        className="p-2 rounded transition-colors hover:bg-white/5"
-                        style={{ color: "rgba(245,240,232,0.3)" }}
+                        className="p-2 rounded-lg text-cream/40 hover:bg-white/5 hover:text-cream transition-colors"
                     >
                         {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
                     </button>
@@ -162,42 +172,40 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 </nav>
 
                 {/* User section */}
-                <div className="border-t p-3" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
+                <div className="border-t border-white/10 p-3">
                     {sidebarOpen ? (
-                        <div
-                            className={cn("flex items-center gap-3 rounded-lg px-3 py-3 mb-2 border bg-gradient-to-r", roleColor)}
-                        >
-                            <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
-                                style={{ background: "rgba(201,169,110,0.2)", color: "#C9A96E", border: "1px solid rgba(201,169,110,0.3)" }}>
+                        <div className={cn("flex items-center gap-3 rounded-xl px-3 py-3 mb-2 border bg-gradient-to-r", roleColor)}>
+                            <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold shrink-0 bg-gold/20 text-gold border border-gold/30">
                                 {user?.fullName?.[0] ?? "?"}
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium truncate" style={{ color: "#F5F0E8" }}>{user?.fullName}</p>
-                                <p className="text-xs truncate" style={{ color: "rgba(245,240,232,0.4)" }}>{ROLE_LABELS[user?.role ?? ""]}</p>
+                                <p className="text-sm font-medium text-cream truncate">{user?.fullName}</p>
+                                <p className="text-xs text-cream/50 truncate">{ROLE_LABELS[normalizedRole] ?? user?.role}</p>
                             </div>
                         </div>
                     ) : (
                         <div className="flex justify-center mb-2">
-                            <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold"
-                                style={{ background: "rgba(201,169,110,0.2)", color: "#C9A96E" }}>
+                            <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold bg-gold/20 text-gold border border-gold/30">
                                 {user?.fullName?.[0] ?? "?"}
                             </div>
                         </div>
                     )}
-                    <div className={cn("flex gap-1", !sidebarOpen && "flex-col items-center")}>
-                        <button onClick={toggleSound}
+                    <div className={cn("flex gap-2", !sidebarOpen && "flex-col items-center")}>
+                        <button
+                            onClick={toggleSound}
                             title={soundOn ? "Tắt âm thanh" : "Bật âm thanh"}
-                            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded text-xs transition-colors hover:bg-white/5"
-                            style={{ color: "rgba(245,240,232,0.45)" }}>
+                            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs text-cream/50 hover:bg-white/5 hover:text-cream/80 transition-colors"
+                        >
                             {soundOn ? <Volume2 size={16} /> : <VolumeX size={16} />}
-                            {sidebarOpen && <span className="text-xs">{soundOn ? "Âm thanh" : "Im lặng"}</span>}
+                            {sidebarOpen && <span>{soundOn ? "Âm thanh" : "Im lặng"}</span>}
                         </button>
-                        <button onClick={handleLogout}
+                        <button
+                            onClick={handleLogout}
                             title="Đăng xuất"
-                            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded text-xs transition-colors hover:bg-red-500/10"
-                            style={{ color: "rgba(245,240,232,0.45)" }}>
+                            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs text-cream/50 hover:bg-red-500/10 hover:text-red-400 transition-colors"
+                        >
                             <LogOut size={16} />
-                            {sidebarOpen && <span className="text-xs">Đăng xuất</span>}
+                            {sidebarOpen && <span>Đăng xuất</span>}
                         </button>
                     </div>
                 </div>
@@ -207,44 +215,33 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <div className="flex-1 flex flex-col overflow-hidden">
 
                 {/* Topbar */}
-                <header className="flex items-center justify-between px-6 py-3 shrink-0"
-                    style={{
-                        background: "rgba(10,10,10,0.9)",
-                        backdropFilter: "blur(12px)",
-                        borderBottom: "1px solid rgba(255,255,255,0.05)",
-                    }}>
+                <header className="flex items-center justify-between px-5 lg:px-6 py-3.5 shrink-0 bg-charcoal/95 backdrop-blur-md border-b border-white/10">
                     <div suppressHydrationWarning>
-                        <h2 className="text-sm font-medium" style={{ color: "rgba(245,240,232,0.7)" }} suppressHydrationWarning>
+                        <h2 className="text-sm font-semibold text-cream/90" suppressHydrationWarning>
                             {mounted ? (deduped.find(n => pathname === n.href || (n.href.length > 1 && pathname.startsWith(n.href)))?.labelVi ?? "Dashboard") : ""}
                         </h2>
-                        <p className="text-[11px]" style={{ color: "rgba(245,240,232,0.25)" }} suppressHydrationWarning>
+                        <p className="text-xs text-cream/40 mt-0.5" suppressHydrationWarning>
                             {dateStr}
                         </p>
                     </div>
                     <div className="flex items-center gap-3">
-                        {/* Language toggle */}
                         <button
                             onClick={() => i18n.changeLanguage(i18n.language === "en" ? "vi" : "en")}
-                            className="text-[10px] tracking-widest uppercase font-medium px-2.5 py-1 rounded border transition-colors hover:border-gold/50"
-                            style={{ color: "rgba(245,240,232,0.4)", borderColor: "rgba(255,255,255,0.08)" }}>
+                            className="text-[10px] tracking-widest uppercase font-medium px-2.5 py-1.5 rounded-lg border border-white/10 text-cream/50 hover:border-gold/40 hover:text-cream/80 transition-colors"
+                        >
                             {i18n.language === "en" ? "VI" : "EN"}
                         </button>
-
-                        {/* User pill */}
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full"
-                            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
-                            suppressHydrationWarning>
-                            <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold"
-                                style={{ background: "rgba(201,169,110,0.2)", color: "#C9A96E" }}
-                                suppressHydrationWarning>
+                        <div
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10"
+                            suppressHydrationWarning
+                        >
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold bg-gold/20 text-gold border border-gold/30" suppressHydrationWarning>
                                 {mounted ? (user?.fullName?.[0] ?? "?") : ""}
                             </div>
-                            <span className="text-xs hidden sm:block" style={{ color: "rgba(245,240,232,0.55)" }} suppressHydrationWarning>
+                            <span className="text-sm font-medium text-cream/90 hidden sm:block" suppressHydrationWarning>
                                 {mounted ? user?.fullName : ""}
                             </span>
-                            <span className="hidden sm:flex items-center gap-1">
-                                <Sparkles size={9} style={{ color: "#C9A96E" }} />
-                            </span>
+                            <Sparkles size={12} className="text-gold/80 hidden sm:block" />
                         </div>
                     </div>
                 </header>

@@ -48,8 +48,11 @@ const resources = {
                 starters: "Starters",
                 mains: "Mains",
                 desserts: "Desserts",
+                drinks: "Drinks",
+                vietnamese: "Vietnamese",
                 signatures: "Signature Dishes",
                 coming_soon: "Menu details coming soon",
+                loading: "Loading menu...",
             },
             chef: {
                 label: "Meet the Chef",
@@ -139,8 +142,11 @@ const resources = {
                 starters: "Khai Vị",
                 mains: "Món Chính",
                 desserts: "Tráng Miệng",
+                drinks: "Đồ Uống",
+                vietnamese: "Món Việt",
                 signatures: "Món Đặc Trưng",
                 coming_soon: "Chi tiết thực đơn sắp ra mắt",
+                loading: "Đang tải thực đơn...",
             },
             chef: {
                 label: "Gặp Gỡ Đầu Bếp",

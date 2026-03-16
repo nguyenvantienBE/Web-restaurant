@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
 import { ChevronLeft } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { useReservationModal } from "@/lib/reservation-modal";
 
 const subNavLinks = [
     { key: "nav.information", href: "#about" },
@@ -14,6 +14,7 @@ const subNavLinks = [
 
 export function SubNav() {
     const { t } = useTranslation();
+    const { open: openReservation } = useReservationModal();
 
     return (
         <div className="bg-charcoal border-t border-white/10 z-40">
@@ -41,12 +42,13 @@ export function SubNav() {
                     </nav>
 
                     {/* Book CTA */}
-                    <Link
-                        href="/reservation"
+                    <button
+                        type="button"
+                        onClick={() => openReservation()}
                         className="btn-gold text-[10px] lg:text-[11px] tracking-[0.2em] py-3 px-5 lg:px-7"
                     >
                         {t("subnav.book")}
-                    </Link>
+                    </button>
                 </div>
             </div>
         </div>

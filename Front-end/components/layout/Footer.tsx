@@ -10,7 +10,7 @@ export function Footer() {
     return (
         <footer
             id="location"
-            className="bg-charcoal border-t border-white/10 pt-16 pb-8"
+            className="bg-charcoal border-t border-white/10 pt-20 lg:pt-28 pb-8"
         >
             <div className="max-w-7xl mx-auto px-6 lg:px-12">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 mb-16">

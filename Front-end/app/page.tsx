@@ -6,7 +6,6 @@ import { About } from "@/components/sections/About";
 import { MenuSection } from "@/components/sections/MenuSection";
 import { Chef } from "@/components/sections/Chef";
 import { Gallery } from "@/components/sections/Gallery";
-import { ReservationSection } from "@/components/sections/ReservationSection";
 import { LiveStatus } from "@/components/sections/LiveStatus";
 
 export default function Home() {
@@ -19,7 +18,6 @@ export default function Home() {
       <MenuSection />
       <Chef />
       <Gallery />
-      <ReservationSection />
       <Footer />
       <LiveStatus />
     </main>

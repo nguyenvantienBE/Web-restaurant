@@ -23,7 +23,8 @@ const STATUS_TABS: { status: OrderStatus | "all"; label: string }[] = [
 
 export default function CashierOrdersPage() {
     const { hasClaim } = useAuth();
-    const [orders, setOrders] = useState<Order[]>(mockOrders);
+    // Bắt đầu với danh sách đơn rỗng thay vì mock
+    const [orders, setOrders] = useState<Order[]>([]);
     const [tab, setTab] = useState<OrderStatus | "all">("all");
     const [selected, setSelected] = useState<Order | null>(null);
 

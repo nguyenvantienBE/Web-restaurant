@@ -22,10 +22,10 @@ const ROLE_REDIRECT: Record<string, string> = {
 };
 
 const DEMO_ACCOUNTS = [
-    { label: "Admin", email: "admin@albion.vn", color: "#a78bfa" },
-    { label: "Manager", email: "manager@albion.vn", color: "#60a5fa" },
-    { label: "Cashier", email: "cashier@albion.vn", color: "#34d399" },
-    { label: "Kitchen", email: "kitchen@albion.vn", color: "#fb923c" },
+    { label: "Admin", email: "admin@restaurant.com", password: "admin123", color: "#a78bfa" },
+    { label: "Manager", email: "manager@restaurant.com", password: "manager123", color: "#60a5fa" },
+    { label: "Cashier", email: "cashier@restaurant.com", password: "cashier123", color: "#34d399" },
+    { label: "Kitchen", email: "kitchen@restaurant.com", password: "kitchen123", color: "#fb923c" },
 ];
 
 export default function LoginPage() {
@@ -203,7 +203,7 @@ export default function LoginPage() {
                         <div className="flex items-center gap-3 mb-5">
                             <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.06)" }} />
                             <p className="text-xs" style={{ color: "rgba(245,240,232,0.25)" }}>
-                                Demo nhanh — mọi mật khẩu
+                                Điền nhanh — nhập mật khẩu đúng
                             </p>
                             <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.06)" }} />
                         </div>
@@ -213,7 +213,7 @@ export default function LoginPage() {
                                     key={acc.email}
                                     onClick={() => {
                                         setValue("email", acc.email);
-                                        setValue("password", "demo");
+                                        setValue("password", acc.password);
                                     }}
                                     className="p-4 text-left rounded-sm transition-all group"
                                     style={{

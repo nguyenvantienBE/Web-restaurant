@@ -5,17 +5,19 @@ import Link from "next/link";
 import { useTranslation } from "react-i18next";
 import { Menu, X, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useReservationModal } from "@/lib/reservation-modal";
 
-const navLinks = [
+const navLinks: { key: string; href: string; isReservation?: boolean }[] = [
     { key: "nav.home", href: "/" },
     { key: "nav.menu", href: "/menu" },
     { key: "nav.chef", href: "/about" },
     { key: "nav.gallery", href: "#gallery" },
-    { key: "nav.reservation", href: "/reservation" },
+    { key: "nav.reservation", href: "#", isReservation: true },
 ];
 
 export function Navbar() {
     const { t, i18n } = useTranslation();
+    const { open: openReservation } = useReservationModal();
     const [scrolled, setScrolled] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -72,15 +74,26 @@ export function Navbar() {
 
                     {/* Desktop Nav */}
                     <nav className="hidden lg:flex items-center gap-10">
-                        {navLinks.map((l) => (
-                            <Link
-                                key={l.key}
-                                href={l.href}
-                                className="nav-link text-cream/80 hover:text-cream text-xs tracking-[0.15em] uppercase font-medium transition-colors duration-200"
-                            >
-                                {t(l.key)}
-                            </Link>
-                        ))}
+                        {navLinks.map((l) =>
+                            l.isReservation ? (
+                                <button
+                                    key={l.key}
+                                    type="button"
+                                    onClick={() => openReservation()}
+                                    className="nav-link text-cream/80 hover:text-cream text-xs tracking-[0.15em] uppercase font-medium transition-colors duration-200"
+                                >
+                                    {t(l.key)}
+                                </button>
+                            ) : (
+                                <Link
+                                    key={l.key}
+                                    href={l.href}
+                                    className="nav-link text-cream/80 hover:text-cream text-xs tracking-[0.15em] uppercase font-medium transition-colors duration-200"
+                                >
+                                    {t(l.key)}
+                                </Link>
+                            )
+                        )}
                     </nav>
 
                     {/* Right controls */}
@@ -95,12 +108,13 @@ export function Navbar() {
                         </button>
 
                         {/* Book CTA - desktop */}
-                        <Link
-                            href="/reservation"
+                        <button
+                            type="button"
+                            onClick={() => openReservation()}
                             className="hidden lg:block btn-gold text-[10px] tracking-[0.2em]"
                         >
                             {t("subnav.book")}
-                        </Link>
+                        </button>
 
                         {/* Mobile menu toggle */}
                         <button
@@ -121,23 +135,34 @@ export function Navbar() {
                 )}
             >
                 <nav className="px-6 py-6 flex flex-col gap-6">
-                    {navLinks.map((l) => (
-                        <Link
-                            key={l.key}
-                            href={l.href}
-                            className="text-cream/80 hover:text-gold text-sm tracking-[0.2em] uppercase font-medium transition-colors"
-                            onClick={() => setMobileOpen(false)}
-                        >
-                            {t(l.key)}
-                        </Link>
-                    ))}
-                    <Link
-                        href="/reservation"
+                    {navLinks.map((l) =>
+                        l.isReservation ? (
+                            <button
+                                key={l.key}
+                                type="button"
+                                onClick={() => { openReservation(); setMobileOpen(false); }}
+                                className="text-cream/80 hover:text-gold text-sm tracking-[0.2em] uppercase font-medium transition-colors text-left"
+                            >
+                                {t(l.key)}
+                            </button>
+                        ) : (
+                            <Link
+                                key={l.key}
+                                href={l.href}
+                                className="text-cream/80 hover:text-gold text-sm tracking-[0.2em] uppercase font-medium transition-colors"
+                                onClick={() => setMobileOpen(false)}
+                            >
+                                {t(l.key)}
+                            </Link>
+                        )
+                    )}
+                    <button
+                        type="button"
+                        onClick={() => { openReservation(); setMobileOpen(false); }}
                         className="btn-gold text-center text-[11px] tracking-[0.2em] mt-2"
-                        onClick={() => setMobileOpen(false)}
                     >
                         {t("subnav.book")}
-                    </Link>
+                    </button>
                 </nav>
             </div>
         </header>

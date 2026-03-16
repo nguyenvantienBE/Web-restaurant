@@ -33,6 +33,7 @@ export default function MenuPage() {
             </section>
 
             <MenuSection />
+            <div className="min-h-[4rem] lg:min-h-[6rem] bg-charcoal-light" aria-hidden />
             <Footer />
             <LiveStatus />
         </main>

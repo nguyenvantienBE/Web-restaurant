@@ -46,6 +46,9 @@ export const CLAIMS = {
     // Reports/Shift
     REPORT_VIEW: "REPORT_VIEW",
     SHIFT_CLOSE: "SHIFT_CLOSE",
+    // Reservations
+    RESERVATION_READ: "RESERVATION_READ",
+    RESERVATION_UPDATE: "RESERVATION_UPDATE",
 } as const;
 
 export type ClaimKey = keyof typeof CLAIMS;
