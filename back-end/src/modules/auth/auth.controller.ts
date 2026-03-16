@@ -9,31 +9,31 @@ import { CurrentUser } from '@/common/decorators/current-user.decorator';
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
-    constructor(private readonly authService: AuthService) { }
+  constructor(private readonly authService: AuthService) {}
 
-    @Post('login')
-    @ApiOperation({ summary: 'Login user' })
-    async login(@Body() loginDto: LoginDto) {
-        return this.authService.login(loginDto);
-    }
+  @Post('login')
+  @ApiOperation({ summary: 'Login user' })
+  async login(@Body() loginDto: LoginDto) {
+    return this.authService.login(loginDto);
+  }
 
-    @Post('refresh')
-    @ApiOperation({ summary: 'Refresh access token' })
-    async refresh(@Body() refreshTokenDto: RefreshTokenDto) {
-        return this.authService.refresh(refreshTokenDto.refreshToken);
-    }
+  @Post('refresh')
+  @ApiOperation({ summary: 'Refresh access token' })
+  async refresh(@Body() refreshTokenDto: RefreshTokenDto) {
+    return this.authService.refresh(refreshTokenDto.refreshToken);
+  }
 
-    @Post('logout')
-    @ApiOperation({ summary: 'Logout user' })
-    async logout(@Body() refreshTokenDto: RefreshTokenDto) {
-        return this.authService.logout(refreshTokenDto.refreshToken);
-    }
+  @Post('logout')
+  @ApiOperation({ summary: 'Logout user' })
+  async logout(@Body() refreshTokenDto: RefreshTokenDto) {
+    return this.authService.logout(refreshTokenDto.refreshToken);
+  }
 
-    @Get('me')
-    @UseGuards(JwtAuthGuard)
-    @ApiBearerAuth()
-    @ApiOperation({ summary: 'Get current user info' })
-    async getMe(@CurrentUser() user: any) {
-        return user;
-    }
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get current user info' })
+  async getMe(@CurrentUser() user: any) {
+    return user;
+  }
 }

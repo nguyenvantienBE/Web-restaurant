@@ -19,6 +19,10 @@ cd Web-restaurant/back-end/back-end
 # 2. Cài dependencies
 npm install
 
+# 2.1 Cài dependencies cho Phase 2 (Realtime, PDF, Email)
+npm install socket.io-client nodemailer pdfkit
+npm install -D @types/nodemailer @types/pdfkit
+
 # 3. Tạo file .env
 copy .env.example .env
 ```

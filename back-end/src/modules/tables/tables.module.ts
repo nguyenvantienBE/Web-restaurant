@@ -4,8 +4,8 @@ import { TablesController } from './tables.controller';
 import { PrismaService } from '@/prisma/prisma.service';
 
 @Module({
-    controllers: [TablesController],
-    providers: [TablesService, PrismaService],
-    exports: [TablesService],
+  controllers: [TablesController],
+  providers: [TablesService, PrismaService],
+  exports: [TablesService],
 })
-export class TablesModule { }
+export class TablesModule {}

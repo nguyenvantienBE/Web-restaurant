@@ -4,8 +4,8 @@ import { RealtimeGateway } from './realtime.gateway';
 
 @Global()
 @Module({
-    imports: [JwtModule.register({})],
-    providers: [RealtimeGateway],
-    exports: [RealtimeGateway],
+  imports: [JwtModule.register({})],
+  providers: [RealtimeGateway],
+  exports: [RealtimeGateway],
 })
-export class RealtimeModule { }
+export class RealtimeModule {}
