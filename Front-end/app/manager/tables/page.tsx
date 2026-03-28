@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { StatusBadge, getTableBgColor } from "@/components/ui/StatusBadge";
 import { Modal } from "@/components/ui/Modal";
-import { mockTables } from "@/lib/mock/data";
-import { Table, TableArea } from "@/lib/types";
+import type { Table, TableArea } from "@/lib/types";
 import { CLAIMS } from "@/lib/types";
 import { useAuth } from "@/lib/auth";
 import { useForm } from "react-hook-form";
@@ -15,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { Plus, QrCode, Edit2, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
+import { useTables, useCreateTable, useUpdateTable, useDeleteTable, useGenerateTableQR, ApiTable } from "@/lib/hooks/useTables";
 
 const tableSchema = z.object({
     tableCode: z.string().min(1, "Mã bàn bắt buộc"),
@@ -29,11 +29,41 @@ const AREA_LABELS: Record<TableArea, string> = {
 
 export default function ManagerTablesPage() {
     const { hasClaim } = useAuth();
-    // Dùng sơ đồ bàn mặc định (tất cả đang trống)
-    const [tables, setTables] = useState<Table[]>(mockTables);
+    const { data: apiTables = [], isLoading } = useTables();
+    const createTable = useCreateTable();
+    const updateTable = useUpdateTable();
+    const deleteTableApi = useDeleteTable();
+    const generateQR = useGenerateTableQR();
+
+    const tables: (Table & { backendId: string; qrCode?: string | null })[] = useMemo(
+        () =>
+            apiTables.map((t: ApiTable) => {
+                // Suy luận area từ floor hoặc mã bàn
+                let area: TableArea = "indoor";
+                const code = t.tableCode.toUpperCase();
+                const floor = (t.floor ?? "").toLowerCase();
+                if (floor.includes("outdoor")) area = "outdoor";
+                else if (floor.includes("roof") || floor.includes("first")) area = "rooftop";
+                else if (floor.includes("bar")) area = "bar";
+                else if (code.startsWith("B")) area = "outdoor";
+                else if (code.startsWith("R")) area = "rooftop";
+                else if (code.includes("BAR")) area = "bar";
+
+                return {
+                    id: t.id,
+                    backendId: t.id,
+                    tableCode: t.tableCode,
+                    area,
+                    capacity: t.capacity,
+                    status: (t.status as any) ?? "EMPTY",
+                    qrUrl: t.qrCode ?? undefined,
+                };
+            }),
+        [apiTables],
+    );
     const [modalOpen, setModalOpen] = useState(false);
-    const [qrModal, setQrModal] = useState<Table | null>(null);
-    const [editTable, setEditTable] = useState<Table | null>(null);
+    const [qrModal, setQrModal] = useState<(Table & { backendId: string; qrCode?: string | null }) | null>(null);
+    const [editTable, setEditTable] = useState<(Table & { backendId: string }) | null>(null);
     const [areaFilter, setAreaFilter] = useState<TableArea | "all">("all");
 
     const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<TableForm>({
@@ -42,28 +72,39 @@ export default function ManagerTablesPage() {
 
     const filtered = areaFilter === "all" ? tables : tables.filter((t) => t.area === areaFilter);
 
-    const openCreate = () => { setEditTable(null); reset({ area: "indoor", capacity: 4 }); setModalOpen(true); };
-    const openEdit = (t: Table) => {
+    const openCreate = () => { setEditTable(null); reset({ area: "indoor", capacity: 4, tableCode: "" }); setModalOpen(true); };
+    const openEdit = (t: Table & { backendId: string }) => {
         setEditTable(t);
         reset({ tableCode: t.tableCode, area: t.area, capacity: t.capacity });
         setModalOpen(true);
     };
 
     const onSubmit = async (data: TableForm) => {
-        await new Promise((r) => setTimeout(r, 200));
-        if (editTable) {
-            setTables((prev) => prev.map((t) => t.id === editTable.id ? { ...t, ...data } : t));
-            toast.success("Đã cập nhật bàn");
-        } else {
-            setTables((prev) => [...prev, { id: `t_${Date.now()}`, status: "EMPTY", ...data }]);
-            toast.success("Đã thêm bàn mới");
+        try {
+            const payload = {
+                tableCode: data.tableCode,
+                tableName: `Table ${data.tableCode}`,
+                capacity: data.capacity,
+                floor: data.area, // dùng floor để lưu khu vực
+            };
+            if (editTable) {
+                await updateTable.mutateAsync({ id: editTable.backendId, ...payload });
+                toast.success("Đã cập nhật bàn");
+            } else {
+                await createTable.mutateAsync(payload);
+                toast.success("Đã thêm bàn mới");
+            }
+            setModalOpen(false);
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : "Không lưu được bàn");
         }
-        setModalOpen(false);
     };
 
     const deleteTable = (id: string) => {
-        setTables((prev) => prev.filter((t) => t.id !== id));
-        toast.success("Đã xoá bàn");
+        deleteTableApi.mutate(id, {
+            onSuccess: () => toast.success("Đã xoá bàn"),
+            onError: (e) => toast.error(e instanceof Error ? e.message : "Xoá bàn thất bại"),
+        });
     };
 
     const getQRValue = (table: Table) =>
@@ -75,7 +116,9 @@ export default function ManagerTablesPage() {
                 <div className="flex items-center justify-between flex-wrap gap-4">
                     <div>
                         <h1 className="font-serif text-cream text-4xl">Quản lý bàn & QR</h1>
-                        <p className="text-cream/40 text-base mt-1">{tables.length} bàn · {tables.filter((t) => t.status === "EMPTY").length} trống</p>
+                        <p className="text-cream/40 text-base mt-1">
+                            {isLoading ? "Đang tải..." : `${tables.length} bàn · ${tables.filter((t) => t.status === "EMPTY").length} trống`}
+                        </p>
                     </div>
                     {hasClaim(CLAIMS.TABLE_CREATE) && (
                         <button onClick={openCreate}
@@ -112,7 +155,14 @@ export default function ManagerTablesPage() {
                             {/* Actions */}
                             <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 {hasClaim(CLAIMS.QR_GENERATE) && (
-                                    <button onClick={() => setQrModal(table)}
+                                    <button onClick={async () => {
+                                        try {
+                                            await generateQR.mutateAsync((table as any).backendId);
+                                            setQrModal(table);
+                                        } catch (e) {
+                                            toast.error(e instanceof Error ? e.message : "Tạo QR thất bại");
+                                        }
+                                    }}
                                         className="w-6 h-6 bg-charcoal/80 text-gold flex items-center justify-center rounded" title="Xem QR">
                                         <QrCode size={12} />
                                     </button>
@@ -124,7 +174,7 @@ export default function ManagerTablesPage() {
                                     </button>
                                 )}
                                 {hasClaim(CLAIMS.TABLE_DELETE) && (
-                                    <button onClick={() => deleteTable(table.id)}
+                                    <button onClick={() => deleteTable((table as any).backendId)}
                                         className="w-6 h-6 bg-charcoal/80 text-red-400/60 hover:text-red-400 flex items-center justify-center rounded">
                                         <Trash2 size={11} />
                                     </button>
