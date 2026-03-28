@@ -34,7 +34,7 @@ export default function ManagerPage() {
     // Stats từ dữ liệu thật
     const totalRevenue = orders
         .filter((o) => ["SERVED", "COMPLETED", "PAID"].includes(o.status))
-        .reduce((s, o) => s + (o.totalAmount || 0), 0);
+        .reduce((s, o) => s + parseFloat(o.total || "0"), 0);
 
     const occupiedTables = tables.filter((t) =>
         !["EMPTY", "NEED_CLEAN"].includes(t.status)
@@ -56,7 +56,7 @@ export default function ManagerPage() {
             const hour = new Date(o.createdAt).toLocaleTimeString("vi-VN", {
                 hour: "2-digit", minute: "2-digit",
             });
-            revenueByHour[hour] = (revenueByHour[hour] || 0) + (o.totalAmount || 0);
+            revenueByHour[hour] = (revenueByHour[hour] || 0) + parseFloat(o.total || "0");
         });
 
     const revenueData = Object.entries(revenueByHour)

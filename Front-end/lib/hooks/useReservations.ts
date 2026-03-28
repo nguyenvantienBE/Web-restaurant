@@ -13,8 +13,9 @@ export function useReservations(status?: ReservationStatus | "all") {
                     ? `?status=${status}`
                     : "";
             const res = await api.get(`/reservations${params}`);
-            const data = await parseResponse<{ data: Reservation[] }>(res);
-            return data;
+            const parsed = await parseResponse<{ data: Reservation[] } | Reservation[]>(res);
+            if (Array.isArray(parsed)) return parsed;
+            return (parsed as { data: Reservation[] }).data ?? [];
         },
         staleTime: 15_000,
     });
