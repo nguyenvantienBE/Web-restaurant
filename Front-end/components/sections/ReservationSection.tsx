@@ -2,14 +2,33 @@
 
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ChevronDown } from "lucide-react";
 import { api, parseResponse } from "@/lib/api";
 import type { Table } from "@/lib/types";
+import { cn } from "@/lib/utils";
+
+const TIME_SLOTS = [
+    "17:30",
+    "18:00",
+    "18:30",
+    "19:00",
+    "19:30",
+    "20:00",
+    "20:30",
+    "21:00",
+    "21:30",
+    "22:00",
+];
 
 type ReservationSectionProps = {
-    /** Khi true: chỉ hiển thị form (dùng trong modal), có nút đóng và gọi onClose khi gửi thành công */
     embedded?: boolean;
     onClose?: () => void;
 };
+
+const luxuryLabel =
+    "block text-[10px] tracking-[0.22em] uppercase text-[#c5a059] mb-2.5 font-semibold font-sans";
+const luxuryInput =
+    "w-full rounded-sm border border-[#6b5a42]/60 bg-[#0a0908] px-4 py-3.5 text-[15px] font-light text-cream/95 placeholder:text-cream/28 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-[border-color,box-shadow] duration-300 focus:border-[#b8956a]/75 focus:outline-none focus:ring-1 focus:ring-[#8a7348]/35 hover:border-[#7d6a4f]/80";
 
 export function ReservationSection({ embedded, onClose }: ReservationSectionProps = {}) {
     const { t } = useTranslation();
@@ -30,14 +49,23 @@ export function ReservationSection({ embedded, onClose }: ReservationSectionProp
                 );
                 const json = await res.json();
                 const data = (json.data ?? json) as Table[];
-                // Chỉ hiển thị bàn đang active, ưu tiên bàn trống
                 setTables(Array.isArray(data) ? data : []);
             } catch {
-                // ignore, không chặn đặt bàn nếu load bàn lỗi
+                // ignore
             }
         }
         loadTables();
     }, []);
+
+    function buildReservationIso(dateStr: string, timeStr: string): string {
+        const tPart = timeStr?.trim() || "19:00";
+        const timePart = tPart.length === 5 ? `${tPart}:00` : tPart.length >= 8 ? tPart : `${tPart}:00`;
+        const d = new Date(`${dateStr}T${timePart}`);
+        if (Number.isNaN(d.getTime())) {
+            throw new Error("Ngày hoặc giờ không hợp lệ");
+        }
+        return d.toISOString();
+    }
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
@@ -47,27 +75,55 @@ export function ReservationSection({ embedded, onClose }: ReservationSectionProp
 
         const form = e.currentTarget;
         const date = (form.elements.namedItem("date") as HTMLInputElement).value;
-        const time = (form.elements.namedItem("time") as HTMLInputElement).value;
+        const time = (form.elements.namedItem("time") as HTMLSelectElement).value;
+        const guestCount = Number((form.elements.namedItem("guestCount") as HTMLSelectElement).value);
+
+        if (!date || !time) {
+            setError("Vui lòng chọn đủ ngày và giờ.");
+            setLoading(false);
+            return;
+        }
+        if (!Number.isFinite(guestCount) || guestCount < 1) {
+            setError("Số khách phải từ 1 trở lên.");
+            setLoading(false);
+            return;
+        }
+
+        let reservationTime: string;
+        try {
+            reservationTime = buildReservationIso(date, time);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Ngày giờ không hợp lệ");
+            setLoading(false);
+            return;
+        }
 
         const payload = {
-            customerName: (form.elements.namedItem("name") as HTMLInputElement).value,
-            customerPhone: (form.elements.namedItem("phone") as HTMLInputElement).value,
-            customerEmail: (form.elements.namedItem("email") as HTMLInputElement).value || undefined,
-            guestCount: Number((form.elements.namedItem("guestCount") as HTMLInputElement).value),
-            reservationTime: new Date(`${date}T${time || "19:00"}:00`).toISOString(),
+            customerName: (form.elements.namedItem("name") as HTMLInputElement).value.trim(),
+            customerPhone: (form.elements.namedItem("phone") as HTMLInputElement).value.trim(),
+            customerEmail: (form.elements.namedItem("email") as HTMLInputElement).value.trim() || undefined,
+            guestCount,
+            reservationTime,
             area: selectedArea || undefined,
-            notes: (form.elements.namedItem("notes") as HTMLTextAreaElement).value || undefined,
-            tableCode: selectedTableCode || undefined,
+            notes: (form.elements.namedItem("notes") as HTMLTextAreaElement).value.trim() || undefined,
+            tableCode: selectedTableCode?.trim() || undefined,
         };
 
         try {
             const res = await api.publicPost("/public/reservations", payload);
-            await parseResponse(res);
-            setSuccess("Đặt bàn thành công! Nhà hàng sẽ liên hệ xác nhận.");
+            const created = await parseResponse<{ confirmationCode?: string }>(res);
+            const code = created?.confirmationCode;
+            setSuccess(
+                code
+                    ? `Đặt bàn thành công! Mã phiếu của bạn: ${code}. Vui lòng giữ mã để nhận bàn tại nhà hàng. Chúng tôi sẽ gửi email xác nhận khi được duyệt (khi đã cấu hình email).`
+                    : "Đặt bàn thành công! Nhà hàng sẽ liên hệ xác nhận.",
+            );
             form.reset();
             setSelectedTableCode("");
             setSelectedArea("");
-            onClose?.();
+            if (onClose) {
+                window.setTimeout(() => onClose(), 1600);
+            }
         } catch (err) {
             setError(err instanceof Error ? err.message : "Đặt bàn thất bại, vui lòng thử lại.");
         } finally {
@@ -75,33 +131,30 @@ export function ReservationSection({ embedded, onClose }: ReservationSectionProp
         }
     }
 
-    const inputClass = embedded
-        ? "w-full bg-white/[0.06] border border-white/20 rounded-xl px-4 py-2.5 text-cream placeholder:text-cream/40 text-sm focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold/50 transition-all duration-200 hover:border-white/30"
-        : "w-full bg-white/[0.06] border border-white/20 rounded-xl px-4 py-3 text-cream placeholder:text-cream/40 text-sm focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold/50 transition-all duration-200 hover:border-white/30";
-    const labelClass = embedded
-        ? "block text-[11px] tracking-[0.18em] uppercase text-cream/80 mb-2 font-medium"
-        : "block text-[11px] tracking-[0.2em] uppercase text-cream/80 mb-2 font-medium";
+    const dropBtnClass = `${luxuryInput} flex items-center justify-between gap-3 text-left cursor-pointer`;
+    const dropPanelClass =
+        "absolute z-20 mt-2 w-full overflow-hidden rounded-sm border border-[#3d3428]/95 bg-[#0c0b0a] shadow-[0_20px_50px_-12px_rgba(0,0,0,0.85)]";
+    const tableDropPanelClass =
+        "absolute z-20 mt-2 w-full max-h-56 overflow-y-auto rounded-sm border border-[#3d3428]/95 bg-[#0c0b0a] shadow-[0_20px_50px_-12px_rgba(0,0,0,0.85)]";
 
-    const getAreaLabel = (t: Table & { floor?: string }) => {
-        let area = t.area;
-        const code = (t.tableCode || "").toUpperCase();
-        const floor = (t as any).floor as string | undefined;
+    const getAreaLabel = (tb: Table & { floor?: string }) => {
+        let area = tb.area;
+        const code = (tb.tableCode || "").toUpperCase();
+        const floor = (tb as { floor?: string }).floor;
 
-        // Ưu tiên area nếu backend có trả về
         if (!area && floor) {
             const f = floor.toLowerCase();
             if (f.includes("ground")) area = "indoor";
             else if (f.includes("first")) area = "rooftop";
         }
 
-        // Nếu vẫn chưa xác định, suy luận theo mã bàn
         if (!area) {
             if (code.startsWith("A")) area = "indoor";
             else if (code.startsWith("B")) area = "outdoor";
             else if (code.startsWith("R")) area = "rooftop";
             else if (code.includes("BAR")) area = "bar";
             else {
-                const num = parseInt(code.replace(/\\D/g, ""), 10);
+                const num = parseInt(code.replace(/\D/g, ""), 10);
                 if (!Number.isNaN(num)) {
                     if (num <= 3) area = "indoor";
                     else if (num <= 6) area = "outdoor";
@@ -124,181 +177,272 @@ export function ReservationSection({ embedded, onClose }: ReservationSectionProp
         }
     };
 
-    const formContent = (
-        <div
-            className={
-                embedded
-                    ? "relative p-5 md:p-6 border border-gold/25 bg-charcoal/98 rounded-xl text-left shadow-lg shadow-black/30"
-                    : "glass-card p-8 md:p-10 border border-gold/25 rounded-2xl text-left shadow-xl shadow-black/20"
-            }
-        >
-            <form onSubmit={handleSubmit} className={embedded ? "space-y-5" : "space-y-5"}>
+    const msgError =
+        "text-sm text-red-300/95 bg-red-950/40 border border-red-500/25 rounded-sm px-4 py-3 leading-relaxed";
+    const msgOk =
+        "text-sm text-emerald-300/95 bg-emerald-950/35 border border-emerald-500/25 rounded-sm px-4 py-3 leading-relaxed";
+
+    const formFields = (
+        <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-x-6 md:gap-y-5">
                 <div>
-                    <label className={labelClass}>Họ tên *</label>
-                    <input name="name" required className={inputClass} placeholder="Nguyễn Văn A" />
-                </div>
-                <div>
-                    <label className={labelClass}>Số điện thoại *</label>
-                    <input name="phone" required className={inputClass} placeholder="0901 234 567" />
-                </div>
-                <div>
-                    <label className={labelClass}>Email</label>
-                    <input name="email" type="email" className={inputClass} placeholder="email@example.com" />
-                </div>
-                <div>
-                    <label className={labelClass}>Số khách *</label>
+                    <label className={luxuryLabel}>
+                        Họ tên <span className="text-[#d4a84b]">*</span>
+                    </label>
                     <input
-                        name="guestCount"
-                        type="number"
-                        min={1}
+                        name="name"
                         required
-                        className={inputClass}
-                        placeholder="2"
+                        className={luxuryInput}
+                        placeholder="Nguyễn Văn A"
+                        autoComplete="name"
                     />
                 </div>
                 <div>
-                    <label className={labelClass}>Ngày *</label>
-                    <input name="date" type="date" required className={inputClass} />
+                    <label className={luxuryLabel}>
+                        Số điện thoại <span className="text-[#d4a84b]">*</span>
+                    </label>
+                    <input
+                        name="phone"
+                        required
+                        className={luxuryInput}
+                        placeholder="0901 234 567"
+                        autoComplete="tel"
+                    />
+                </div>
+            </div>
+
+            <div>
+                <label className={luxuryLabel}>Email</label>
+                <input
+                    name="email"
+                    type="email"
+                    className={luxuryInput}
+                    placeholder="mail@example.com"
+                    autoComplete="email"
+                />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-x-6">
+                <div>
+                    <label className={luxuryLabel}>
+                        Số khách <span className="text-[#d4a84b]">*</span>
+                    </label>
+                    <div className="relative">
+                        <select
+                            name="guestCount"
+                            required
+                            defaultValue="2"
+                            className={cn(luxuryInput, "appearance-none cursor-pointer pr-11")}
+                        >
+                            {Array.from({ length: 20 }, (_, i) => i + 1).map((n) => (
+                                <option key={n} value={n}>
+                                    {n}
+                                </option>
+                            ))}
+                        </select>
+                        <ChevronDown
+                            size={16}
+                            className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#a8946e]/90"
+                            strokeWidth={1.75}
+                        />
+                    </div>
                 </div>
                 <div>
-                    <label className={labelClass}>Giờ *</label>
-                    <input name="time" type="time" required className={inputClass} />
-                </div>
-                <div className="relative">
-                    <label className={labelClass}>Khu vực</label>
-                    <input type="hidden" name="area" value={selectedArea} />
-                    <button
-                        type="button"
-                        onClick={() => setAreaDropdownOpen((o) => !o)}
-                        className={`w-full flex items-center justify-between rounded-xl px-4 py-3 text-sm text-left border transition-all duration-200 ${inputClass}`}
-                    >
-                        <span className={selectedArea ? "text-cream" : "text-cream/40"}>
-                            {selectedArea === "indoor"
-                                ? "Trong nhà"
-                                : selectedArea === "outdoor"
-                                    ? "Ngoài trời"
-                                    : selectedArea === "rooftop"
-                                        ? "Sân thượng"
-                                        : selectedArea === "bar"
-                                            ? "Khu bar"
-                                            : "Bất kỳ"}
-                        </span>
-                        <span className="text-cream/50 text-xs">▼</span>
-                    </button>
-                    {areaDropdownOpen && (
-                        <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-xl border border-white/20 bg-[#141414] shadow-xl">
-                            {[
-                                { value: "", label: "Bất kỳ" },
-                                { value: "indoor", label: "Trong nhà" },
-                                { value: "outdoor", label: "Ngoài trời" },
-                                { value: "rooftop", label: "Sân thượng" },
-                                { value: "bar", label: "Khu bar" },
-                            ].map((opt) => (
-                                <button
-                                    key={opt.value || "any"}
-                                    type="button"
-                                    onClick={() => {
-                                        setSelectedArea(opt.value);
-                                        setAreaDropdownOpen(false);
-                                    }}
-                                    className="w-full text-left px-4 py-3 text-sm text-cream/90 hover:bg-white/10 transition-colors first:rounded-t-xl"
-                                >
-                                    {opt.label}
-                                </button>
+                    <label className={luxuryLabel}>
+                        Giờ <span className="text-[#d4a84b]">*</span>
+                    </label>
+                    <div className="relative">
+                        <select
+                            name="time"
+                            required
+                            defaultValue=""
+                            className={cn(luxuryInput, "appearance-none cursor-pointer pr-11")}
+                        >
+                            <option value="" disabled>
+                                — : —
+                            </option>
+                            {TIME_SLOTS.map((slot) => (
+                                <option key={slot} value={slot}>
+                                    {slot}
+                                </option>
                             ))}
-                        </div>
-                    )}
+                        </select>
+                        <ChevronDown
+                            size={16}
+                            className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#a8946e]/90"
+                            strokeWidth={1.75}
+                        />
+                    </div>
                 </div>
-                <div className="relative">
-                    <label className={labelClass}>Chọn bàn (tuỳ chọn)</label>
-                    <input type="hidden" name="tableCode" value={selectedTableCode} />
-                    <button
-                        type="button"
-                        onClick={() => setTableDropdownOpen((o) => !o)}
-                        className={`w-full flex items-center justify-between rounded-xl px-4 py-3 text-sm text-left border transition-all duration-200 ${inputClass}`}
-                    >
-                        <span className={selectedTableCode ? "text-cream" : "text-cream/40"}>
-                            {selectedTableCode
-                                ? (() => {
-                                    const tb = tables.find((t) => t.tableCode === selectedTableCode);
-                                    if (!tb) return selectedTableCode;
-                                    return `${tb.tableCode} · ${getAreaLabel(tb)} · ${tb.capacity} khách`;
-                                })()
-                                : "Để nhà hàng sắp xếp"}
-                        </span>
-                        <span className="text-cream/50 text-xs">▼</span>
-                    </button>
-                    {tableDropdownOpen && (
-                        <div className="absolute z-20 mt-2 w-full max-h-56 overflow-y-auto rounded-xl border border-white/20 bg-charcoal-light shadow-xl">
+            </div>
+
+            <div>
+                <label className={luxuryLabel}>
+                    Ngày <span className="text-[#d4a84b]">*</span>
+                </label>
+                <input name="date" type="date" required className={luxuryInput} />
+            </div>
+
+            <div className="relative">
+                <label className={luxuryLabel}>Khu vực</label>
+                <input type="hidden" name="area" value={selectedArea} />
+                <button
+                    type="button"
+                    onClick={() => setAreaDropdownOpen((o) => !o)}
+                    className={dropBtnClass}
+                >
+                    <span className={selectedArea ? "text-cream/95" : "text-cream/35"}>
+                        {selectedArea === "indoor"
+                            ? "Trong nhà"
+                            : selectedArea === "outdoor"
+                              ? "Ngoài trời"
+                              : selectedArea === "rooftop"
+                                ? "Sân thượng"
+                                : selectedArea === "bar"
+                                  ? "Khu bar"
+                                  : "Bất kỳ"}
+                    </span>
+                    <ChevronDown size={16} className="text-[#a8946e]/85 shrink-0" strokeWidth={1.75} />
+                </button>
+                {areaDropdownOpen && (
+                    <div className={dropPanelClass}>
+                        {[
+                            { value: "", label: "Bất kỳ" },
+                            { value: "indoor", label: "Trong nhà" },
+                            { value: "outdoor", label: "Ngoài trời" },
+                            { value: "rooftop", label: "Sân thượng" },
+                            { value: "bar", label: "Khu bar" },
+                        ].map((opt) => (
                             <button
+                                key={opt.value || "any"}
                                 type="button"
                                 onClick={() => {
-                                    setSelectedTableCode("");
-                                    setTableDropdownOpen(false);
+                                    setSelectedArea(opt.value);
+                                    setAreaDropdownOpen(false);
                                 }}
-                                className="w-full text-left px-4 py-3 text-sm text-cream/80 hover:bg-white/10 rounded-t-xl transition-colors"
+                                className="w-full text-left px-4 py-3 text-sm text-cream/90 hover:bg-white/[0.06] transition-colors"
                             >
-                                Để nhà hàng sắp xếp
+                                {opt.label}
                             </button>
-                            <div className="border-t border-white/10" />
-                            {tables
-                                .sort((a, b) => a.tableCode.localeCompare(b.tableCode))
-                                .map((t) => {
-                                    const label = `${t.tableCode} · ${getAreaLabel(t)} · ${t.capacity} khách`;
-                                    return (
-                                        <button
-                                            key={t.id}
-                                            type="button"
-                                            onClick={() => {
-                                                setSelectedTableCode(t.tableCode);
-                                                setTableDropdownOpen(false);
-                                            }}
-                                            className="w-full text-left px-4 py-3 text-sm text-cream/90 hover:bg-white/10 transition-colors"
-                                        >
-                                            {label}
-                                        </button>
-                                    );
-                                })}
-                        </div>
-                    )}
-                </div>
-                <div>
-                    <label className={labelClass}>Ghi chú</label>
-                    <textarea
-                        name="notes"
-                        rows={embedded ? 3 : 3}
-                        placeholder="Yêu cầu đặc biệt, dịp kỷ niệm..."
-                        className={`${inputClass} resize-none ${embedded ? "min-h-[80px]" : "min-h-[88px]"}`}
-                    />
-                </div>
-                {(error || success) && (
-                    <div className="space-y-2">
-                        {error && (
-                            <p className={embedded ? "text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3" : "text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3"}>
-                                {error}
-                            </p>
-                        )}
-                        {success && (
-                            <p className={embedded ? "text-sm text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3" : "text-sm text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3"}>
-                                {success}
-                            </p>
-                        )}
+                        ))}
                     </div>
                 )}
-                <div className={`pt-2 ${embedded ? "flex justify-center" : "flex justify-end"}`}>
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className={`w-full inline-flex items-center justify-center bg-gold text-charcoal font-semibold tracking-wide uppercase rounded-xl hover:bg-gold-light focus:outline-none focus:ring-2 focus:ring-gold/50 focus:ring-offset-2 focus:ring-offset-charcoal transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed shadow-lg shadow-gold/20 ${embedded ? "py-3.5 text-sm" : "sm:w-auto min-w-[180px] px-8 py-3.5 text-sm"}`}
-                    >
-                        {loading ? "Đang gửi..." : "Đặt bàn"}
-                    </button>
+            </div>
+
+            <div className="relative">
+                <label className={luxuryLabel}>Chọn bàn (tuỳ chọn)</label>
+                <input type="hidden" name="tableCode" value={selectedTableCode} />
+                <button
+                    type="button"
+                    onClick={() => setTableDropdownOpen((o) => !o)}
+                    className={dropBtnClass}
+                >
+                    <span className={selectedTableCode ? "text-cream/95 line-clamp-2" : "text-cream/35"}>
+                        {selectedTableCode
+                            ? (() => {
+                                  const tb = tables.find((x) => x.tableCode === selectedTableCode);
+                                  if (!tb) return selectedTableCode;
+                                  return `${tb.tableCode} · ${getAreaLabel(tb)} · ${tb.capacity} khách`;
+                              })()
+                            : "—"}
+                    </span>
+                    <ChevronDown size={16} className="text-[#a8946e]/85 shrink-0" strokeWidth={1.75} />
+                </button>
+                {tableDropdownOpen && (
+                    <div className={tableDropPanelClass}>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setSelectedTableCode("");
+                                setTableDropdownOpen(false);
+                            }}
+                            className="w-full text-left px-4 py-3 text-sm text-cream/80 hover:bg-white/[0.06] transition-colors"
+                        >
+                            Để nhà hàng sắp xếp
+                        </button>
+                        <div className="border-t border-white/[0.08]" />
+                        {tables
+                            .sort((a, b) => a.tableCode.localeCompare(b.tableCode))
+                            .map((tb) => {
+                                const label = `${tb.tableCode} · ${getAreaLabel(tb)} · ${tb.capacity} khách`;
+                                return (
+                                    <button
+                                        key={tb.id}
+                                        type="button"
+                                        onClick={() => {
+                                            setSelectedTableCode(tb.tableCode);
+                                            setTableDropdownOpen(false);
+                                        }}
+                                        className="w-full text-left px-4 py-3 text-sm text-cream/90 hover:bg-white/[0.06] transition-colors"
+                                    >
+                                        {label}
+                                    </button>
+                                );
+                            })}
+                    </div>
+                )}
+            </div>
+
+            <div>
+                <label className={luxuryLabel}>Ghi chú</label>
+                <textarea
+                    name="notes"
+                    rows={embedded ? 6 : 5}
+                    placeholder="Yêu cầu đặc biệt, dịp kỷ niệm..."
+                    className={cn(luxuryInput, "resize-y min-h-[140px] leading-relaxed")}
+                />
+            </div>
+
+            {(error || success) && (
+                <div className="space-y-2">
+                    {error && <p className={msgError}>{error}</p>}
+                    {success && <p className={msgOk}>{success}</p>}
                 </div>
-            </form>
-        </div>
+            )}
+
+            <div className="pt-2">
+                <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full inline-flex items-center justify-center rounded-sm border border-[#8a7348]/50 bg-gradient-to-b from-[#e4c88a] via-[#c9a96e] to-[#8f7349] py-4 text-[12px] font-bold tracking-[0.28em] uppercase text-[#1a1510] shadow-[0_14px_40px_-10px_rgba(0,0,0,0.75),inset_0_1px_0_rgba(255,255,255,0.35)] transition-[filter,opacity] duration-300 hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#b8956a]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0908] disabled:cursor-not-allowed disabled:opacity-55"
+                >
+                    {loading ? "Đang gửi..." : "Đặt bàn"}
+                </button>
+            </div>
+        </>
     );
 
-    if (embedded) return formContent;
+    const form = (
+        <form onSubmit={handleSubmit}>
+            <div
+                className={cn(
+                    "text-left",
+                    !embedded && "reservation-form-panel px-8 py-9 md:px-10 md:py-11",
+                )}
+            >
+                {!embedded && (
+                    <header className="text-center mb-9 md:mb-10">
+                        <div className="flex items-center justify-center gap-3 sm:gap-5 mb-5">
+                            <span className="h-px w-12 sm:w-16 max-w-[30%] bg-gradient-to-r from-transparent via-[#c5a059]/80 to-[#c5a059]/30" />
+                            <span className="section-label mb-0 whitespace-nowrap">{t("reservation.label")}</span>
+                            <span className="h-px w-12 sm:w-16 max-w-[30%] bg-gradient-to-l from-transparent via-[#c5a059]/80 to-[#c5a059]/30" />
+                        </div>
+                        <h2 className="font-serif text-[1.7rem] sm:text-[2rem] text-[#ebe3d6] font-normal tracking-tight mb-3 leading-tight">
+                            {t("reservation.title")}
+                        </h2>
+                        <p className="text-[13px] sm:text-sm text-cream/50 font-light leading-relaxed max-w-md mx-auto">
+                            {t("reservation.subtitle")}
+                        </p>
+                    </header>
+                )}
+                <div className="space-y-5 md:space-y-6">{formFields}</div>
+            </div>
+        </form>
+    );
+
+    if (embedded) {
+        return form;
+    }
 
     return (
         <section id="reservation" className="relative py-24 lg:py-32 overflow-hidden">
@@ -306,18 +450,12 @@ export function ReservationSection({ embedded, onClose }: ReservationSectionProp
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                     src="https://images.unsplash.com/photo-1559339352-11d035aa65de?w=1920&q=80"
-                    alt="Restaurant ambience"
-                    className="w-full h-full object-cover opacity-20"
+                    alt=""
+                    className="h-full w-full object-cover scale-105 blur-[3px]"
                 />
-                <div className="absolute inset-0 bg-charcoal/80" />
+                <div className="absolute inset-0 bg-[#060504]/78 backdrop-blur-[10px]" />
             </div>
-            <div className="relative max-w-2xl mx-auto px-6 lg:px-12 text-center">
-                <p className="section-label mb-6">{t("reservation.label")}</p>
-                <h2 className="section-title mb-6">{t("reservation.title")}</h2>
-                <div className="divider-gold" />
-                <p className="section-subtitle mb-12">{t("reservation.subtitle")}</p>
-                {formContent}
-            </div>
+            <div className="relative z-10 mx-auto max-w-[480px] px-5 sm:px-6">{form}</div>
         </section>
     );
 }

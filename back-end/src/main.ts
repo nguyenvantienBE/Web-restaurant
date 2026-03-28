@@ -1,17 +1,33 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { json, urlencoded } from 'express';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
 
+const JSON_BODY_LIMIT = '15mb';
+
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    bodyParser: false,
+  });
+
+  app.use(json({ limit: JSON_BODY_LIMIT }));
+  app.use(urlencoded({ extended: true, limit: JSON_BODY_LIMIT }));
 
   const config = app.get(ConfigService);
 
-  // Enable CORS
+  const frontendRaw = config.get<string>('frontend.url') || 'http://localhost:3001';
+  const corsOrigins = [
+    ...frontendRaw.split(',').map((s) => s.trim()),
+    'http://localhost:3001',
+    'http://localhost:5173',
+    'http://127.0.0.1:3001',
+  ].filter((v, i, a) => v && a.indexOf(v) === i);
+
   app.enableCors({
-    origin: config.get('frontend.url'),
+    origin: corsOrigins,
     credentials: true,
   });
 

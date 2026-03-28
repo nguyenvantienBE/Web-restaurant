@@ -4,16 +4,13 @@ let socket: Socket | null = null;
 
 export function getSocket(): Socket {
     if (!socket) {
-        const token = typeof window !== "undefined"
-            ? sessionStorage.getItem("accessToken")
-            : null;
-
         socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3000", {
             autoConnect: false,
             transports: ["websocket"],
-            auth: token ? { token } : undefined,
         });
     }
+    const token = typeof window !== "undefined" ? sessionStorage.getItem("accessToken") : null;
+    socket.auth = token ? { token } : {};
     return socket;
 }
 

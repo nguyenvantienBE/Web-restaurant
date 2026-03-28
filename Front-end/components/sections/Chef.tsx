@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslation } from "react-i18next";
+import { SectionContainer } from "@/components/layout/SectionContainer";
 
 export function Chef() {
     const { t } = useTranslation();
@@ -12,7 +13,7 @@ export function Chef() {
     ];
 
     return (
-        <section id="chef" className="py-24 lg:py-32 bg-charcoal relative overflow-hidden">
+        <section id="chef" className="py-24 lg:py-32 bg-charcoal relative overflow-x-hidden">
             {/* Background texture */}
             <div className="absolute inset-0 opacity-5">
                 <div
@@ -25,7 +26,7 @@ export function Chef() {
                 />
             </div>
 
-            <div className="relative max-w-7xl mx-auto px-6 lg:px-12">
+            <SectionContainer className="relative z-10">
                 <div className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-center">
                     {/* Image */}
                     <div className="relative order-2 lg:order-1">
@@ -76,7 +77,7 @@ export function Chef() {
                         </div>
                     </div>
                 </div>
-            </div>
+            </SectionContainer>
         </section>
     );
 }

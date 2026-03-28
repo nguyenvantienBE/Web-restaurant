@@ -59,6 +59,19 @@ enum ReservationStatus {
   CONFIRMED
   CANCELLED
   COMPLETED
+  NO_SHOW
+}
+
+enum ShiftStatus {
+  OPEN
+  CLOSED
+}
+
+enum ShiftExpenseType {
+  REFUND
+  INTERNAL_SPEND
+  PURCHASE
+  OTHER
 }
 
 // ========== MODELS ==========
@@ -82,6 +95,10 @@ model User {
   orders        Order[]
   auditLogs     AuditLog[]
   refreshTokens RefreshToken[]
+  shiftsOpened   Shift[]        @relation("ShiftOpenedBy")
+  shiftsClosed   Shift[]        @relation("ShiftClosedBy")
+  shiftExpensesCreated ShiftExpense[]
+  shiftApprovals Shift[]        @relation("ShiftApprovedBy")
 
   @@index([email])
   @@index([roleId])
@@ -168,6 +185,8 @@ model MenuItem {
   description String?
   price       Decimal  @db.Decimal(10, 2)
   imageUrl    String?
+  /// Manager-selected labels: BEST_SELLER, RECOMMENDED, CHEFS_PICK, NEW
+  tags        String[] @default([])
   isAvailable Boolean  @default(true)
   sortOrder   Int      @default(0)
   createdAt   DateTime @default(now())
@@ -231,6 +250,10 @@ model Order {
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
 
+  /// POS: gán khi tạo đơn (ca đang OPEN). Đơn cũ có thể null.
+  shiftId String?
+  shift   Shift?  @relation(fields: [shiftId], references: [id])
+
   // For DINE_IN orders
   sessionId String?
   session   TableSession? @relation(fields: [sessionId], references: [id])
@@ -248,6 +271,57 @@ model Order {
   @@index([status])
   @@index([type])
   @@index([sessionId])
+  @@index([shiftId])
+}
+
+model Shift {
+  id           String      @id @default(uuid())
+  status       ShiftStatus @default(OPEN)
+  openedAt     DateTime    @default(now())
+  closedAt     DateTime?
+  /// Ngày làm việc (VN) để báo cáo — gốc theo openedAt
+  shiftDateYmd String
+
+  openedById String
+  openedBy   User   @relation("ShiftOpenedBy", fields: [openedById], references: [id])
+
+  closedById String?
+  closedBy   User?  @relation("ShiftClosedBy", fields: [closedById], references: [id])
+
+  openingCash Decimal @db.Decimal(12, 2)
+
+  /// Snapshot lúc kết ca (đồng bộ kiểm kê)
+  expectedCash     Decimal? @db.Decimal(12, 2)
+  actualCash         Decimal? @db.Decimal(12, 2)
+  cashSalesAtClose   Decimal? @db.Decimal(12, 2)
+  expensesAtClose    Decimal? @db.Decimal(12, 2)
+  difference         Decimal? @db.Decimal(12, 2)
+  differenceReason   String?
+  /// Duyệt chênh lệch (khi có quyền SHIFT_APPROVE_DIFF)
+  approvedByManagerId String?
+  approvedByManager    User?   @relation("ShiftApprovedBy", fields: [approvedByManagerId], references: [id])
+
+  orders   Order[]
+  expenses ShiftExpense[]
+
+  @@index([status])
+  @@index([shiftDateYmd])
+  @@index([openedAt])
+}
+
+model ShiftExpense {
+  id        String           @id @default(uuid())
+  shiftId   String
+  shift     Shift            @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  amount    Decimal          @db.Decimal(12, 2)
+  type      ShiftExpenseType
+  note      String?
+  createdAt DateTime         @default(now())
+  createdById String?
+  createdBy   User?          @relation(fields: [createdById], references: [id])
+
+  @@index([shiftId])
+  @@index([createdAt])
 }
 
 model OrderItem {
@@ -324,6 +398,8 @@ model Reservation {
   reservationTime DateTime
   status        ReservationStatus @default(PENDING)
   notes         String?
+  confirmationCode String         @unique
+  checkedInAt   DateTime?
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 
@@ -333,6 +409,40 @@ model Reservation {
   @@index([status])
   @@index([reservationTime])
   @@index([tableId])
+}
+
+/// Cấu hình singleton — thông tin nhà hàng & template email hóa đơn
+model RestaurantSettings {
+  id String @id @default("default")
+
+  restaurantName String @default("Nhà hàng")
+  hotline        String @default("")
+  address        String @default("")
+  website        String @default("")
+  /// From SMTP / gửi mail
+  emailFrom      String?
+
+  /// Handlebars: email chi tiết (không đính PDF)
+  emailTemplatePlain String @db.Text
+  /// Handlebars: email ngắn khi đính kèm PDF
+  emailTemplatePdf   String @db.Text
+
+  /// Giờ mở/đóng cửa (HH:mm, Asia/Ho_Chi_Minh) — dùng để tự mở ca khi chưa có ca thủ công
+  operationsOpenTime  String @default("10:00")
+  operationsCloseTime String @default("23:00")
+
+  updatedAt DateTime @updatedAt
+}
+
+model StaffNotification {
+  id        String   @id @default(uuid())
+  type      String
+  title     String
+  body      String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }
 
 model AuditLog {

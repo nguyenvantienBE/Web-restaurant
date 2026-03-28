@@ -11,6 +11,7 @@ import {
     Table2, CalendarDays, Settings, Users, Bell, LogOut,
     Menu, X, Volume2, VolumeX, ChevronRight, Sparkles,
 } from "lucide-react";
+import { StaffNotificationBell } from "@/components/StaffNotificationBell";
 import { setSoundEnabled, getSoundEnabled } from "@/lib/sound";
 
 interface NavItem {
@@ -225,6 +226,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                         </p>
                     </div>
                     <div className="flex items-center gap-3">
+                        <StaffNotificationBell />
                         <button
                             onClick={() => i18n.changeLanguage(i18n.language === "en" ? "vi" : "en")}
                             className="text-[10px] tracking-widest uppercase font-medium px-2.5 py-1.5 rounded-lg border border-white/10 text-cream/50 hover:border-gold/40 hover:text-cream/80 transition-colors"

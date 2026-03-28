@@ -1,5 +1,7 @@
-import { IsNotEmpty, IsString, IsNumber, IsOptional, IsBoolean } from 'class-validator';
+import { IsNotEmpty, IsString, IsNumber, IsOptional, IsBoolean, IsArray, IsIn } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
+export const MENU_ITEM_TAG_VALUES = ['BEST_SELLER', 'RECOMMENDED', 'CHEFS_PICK', 'NEW'] as const;
 
 export class CreateMenuItemDto {
   @ApiProperty()
@@ -36,6 +38,13 @@ export class CreateMenuItemDto {
   @IsBoolean()
   @IsOptional()
   isAvailable?: boolean;
+
+  @ApiPropertyOptional({ enum: MENU_ITEM_TAG_VALUES, isArray: true })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @IsIn([...MENU_ITEM_TAG_VALUES], { each: true })
+  tags?: string[];
 }
 
 export class UpdateMenuItemDto {
@@ -73,4 +82,11 @@ export class UpdateMenuItemDto {
   @IsBoolean()
   @IsOptional()
   isAvailable?: boolean;
+
+  @ApiPropertyOptional({ enum: MENU_ITEM_TAG_VALUES, isArray: true })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @IsIn([...MENU_ITEM_TAG_VALUES], { each: true })
+  tags?: string[];
 }

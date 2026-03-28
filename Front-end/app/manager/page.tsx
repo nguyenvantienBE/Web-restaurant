@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useTables } from "@/lib/hooks/useTables";
 import { useOrders } from "@/lib/hooks/useOrders";
+import { useCashierQueriesRefresh } from "@/lib/hooks/useCashierQueriesRefresh";
 import { useMenuItems } from "@/lib/hooks/useMenu";
 import {
     BarChart, Bar, LineChart, Line, XAxis, YAxis,
@@ -25,6 +26,7 @@ const formatPrice = (p: number) =>
 const formatM = (p: number) => `${(p / 1_000_000).toFixed(1)}M`;
 
 export default function ManagerPage() {
+    useCashierQueriesRefresh(true, { includeReports: true });
     const { data: tables = [], isLoading: tablesLoading } = useTables();
     const { data: orders = [], isLoading: ordersLoading } = useOrders();
     const { data: menuItems = [], isLoading: menuLoading } = useMenuItems();

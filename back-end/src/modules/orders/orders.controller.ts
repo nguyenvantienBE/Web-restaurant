@@ -34,6 +34,12 @@ export class OrdersController {
     return this.ordersService.createStaffCall(tableCode, body.reason);
   }
 
+  @Get('public/tables/:tableCode/snapshot')
+  @ApiOperation({ summary: 'Trạng thái bàn + đơn (khách QR — không auth)' })
+  getTableSnapshot(@Param('tableCode') tableCode: string) {
+    return this.ordersService.getPublicTableSnapshot(tableCode);
+  }
+
   // ========== STAFF ENDPOINTS (Cashier) ==========
   @Get('orders')
   @UseGuards(JwtAuthGuard, ClaimsGuard)

@@ -13,9 +13,19 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { RealtimeEvents, RealtimeRooms } from './realtime.events';
 
+const frontendOrigins = [
+  ...(process.env.FRONTEND_URL || 'http://localhost:3001')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean),
+  'http://localhost:3001',
+  'http://localhost:5173',
+  'http://127.0.0.1:3001',
+].filter((v, i, a) => v && a.indexOf(v) === i);
+
 @WebSocketGateway({
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: frontendOrigins,
     credentials: true,
   },
 })
@@ -83,6 +93,8 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
   emitOrderConfirmed(order: any) {
     this.logger.log(`Emitting KITCHEN_TICKET for order ${order.orderNumber}`);
     this.server.to(RealtimeRooms.KITCHEN).emit(RealtimeEvents.KITCHEN_TICKET, order);
+    // Thu ngân / quản lý (room CASHIER): refetch danh sách đơn khi đơn chuyển CONFIRMED (vd. mang về sau xác nhận)
+    this.server.to(RealtimeRooms.CASHIER).emit(RealtimeEvents.ORDER_UPDATED, order);
   }
 
   emitOrderUpdated(order: any) {
@@ -100,6 +112,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
   emitItemStatusChanged(item: any) {
     this.logger.log(`Emitting ITEM_STATUS_CHANGED for item ${item.id}`);
     this.server.to(RealtimeRooms.CASHIER).emit(RealtimeEvents.ITEM_STATUS_CHANGED, item);
+    this.server.to(RealtimeRooms.KITCHEN).emit(RealtimeEvents.ITEM_STATUS_CHANGED, item);
   }
 
   // Emit table status changes
@@ -118,5 +131,26 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
   emitPaymentCompleted(payment: any) {
     this.logger.log(`Emitting PAYMENT_COMPLETED for payment ${payment.id}`);
     this.server.to(RealtimeRooms.CASHIER).emit(RealtimeEvents.PAYMENT_COMPLETED, payment);
+    this.server.to(RealtimeRooms.KITCHEN).emit(RealtimeEvents.PAYMENT_COMPLETED, payment);
+  }
+
+  emitReservationNew(payload: {
+    id: string;
+    confirmationCode: string;
+    customerName: string;
+    reservationTime: string;
+  }) {
+    this.logger.log(`Emitting RESERVATION_NEW ${payload.confirmationCode}`);
+    this.server.to(RealtimeRooms.STAFF).emit(RealtimeEvents.RESERVATION_NEW, payload);
+    this.server.to(RealtimeRooms.CASHIER).emit(RealtimeEvents.RESERVATION_NEW, payload);
+  }
+
+  emitReservationUpdated(payload: {
+    id: string;
+    status: string;
+    confirmationCode: string;
+  }) {
+    this.server.to(RealtimeRooms.STAFF).emit(RealtimeEvents.RESERVATION_UPDATED, payload);
+    this.server.to(RealtimeRooms.CASHIER).emit(RealtimeEvents.RESERVATION_UPDATED, payload);
   }
 }

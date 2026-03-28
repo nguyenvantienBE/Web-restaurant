@@ -53,6 +53,12 @@ const resources = {
                 signatures: "Signature Dishes",
                 coming_soon: "Menu details coming soon",
                 loading: "Loading menu...",
+                item_tags: {
+                    BEST_SELLER: "Best Seller",
+                    RECOMMENDED: "Recommended",
+                    CHEFS_PICK: "Chef's Pick",
+                    NEW: "New",
+                },
             },
             chef: {
                 label: "Meet the Chef",
@@ -147,6 +153,12 @@ const resources = {
                 signatures: "Món Đặc Trưng",
                 coming_soon: "Chi tiết thực đơn sắp ra mắt",
                 loading: "Đang tải thực đơn...",
+                item_tags: {
+                    BEST_SELLER: "Bán chạy",
+                    RECOMMENDED: "Đề xuất",
+                    CHEFS_PICK: "Bếp chọn",
+                    NEW: "Mới",
+                },
             },
             chef: {
                 label: "Gặp Gỡ Đầu Bếp",

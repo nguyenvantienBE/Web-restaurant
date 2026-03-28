@@ -4,15 +4,18 @@ import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useKitchenTickets, useMarkItemCooking, useMarkItemReady } from "@/lib/hooks/useKitchen";
+import { useKitchenQueriesRefresh } from "@/lib/hooks/useKitchenQueriesRefresh";
 import { CLAIMS } from "@/lib/types";
 import { useAuth } from "@/lib/auth";
 import { playSound } from "@/lib/sound";
 import { cn } from "@/lib/utils";
-import { ChefHat, Clock, Utensils, AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
+import { ChefHat, Clock, Utensils, AlertTriangle, CheckCircle2, Loader2, History } from "lucide-react";
 import { toast } from "sonner";
 
 export default function KitchenPage() {
     const { hasClaim } = useAuth();
+    /** Socket → refetch ticket ngay (không chỉ dựa vào polling) */
+    useKitchenQueriesRefresh(hasClaim(CLAIMS.KITCHEN_TICKET_READ));
     const { data: orders = [], isLoading, refetch } = useKitchenTickets();
     const markCooking = useMarkItemCooking();
     const markReady = useMarkItemReady();
@@ -83,6 +86,17 @@ export default function KitchenPage() {
                         }
                         Làm mới
                     </button>
+                </div>
+
+                {/* Lịch sử món — placeholder (nối API báo cáo sau) */}
+                <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+                    <div className="flex items-center gap-2 text-sm font-medium text-cream/75">
+                        <History size={16} className="text-gold shrink-0" />
+                        Lịch sử món đã gọi
+                    </div>
+                    <p className="mt-2 text-xs leading-relaxed text-cream/35">
+                        Sắp có: gom theo ngày, bàn, số đơn, số lượng, hóa đơn — phục vụ đối soát bếp / thu ngân.
+                    </p>
                 </div>
 
                 {/* Loading */}

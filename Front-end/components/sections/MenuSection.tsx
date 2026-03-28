@@ -5,6 +5,8 @@ import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { useMenuItems, useCategories, type ApiMenuItem } from "@/lib/hooks/useMenu";
 import { Loader2, UtensilsCrossed } from "lucide-react";
+import { SectionContainer } from "@/components/layout/SectionContainer";
+import { isMenuItemTagId } from "@/lib/menuItemTags";
 
 type Tab = "dinner" | "bar" | "tasting";
 
@@ -22,14 +24,25 @@ const CATEGORY_I18N_KEYS: Record<string, string> = {
     "Món Việt": "vietnamese",
 };
 
-function formatPrice(price: number | string) {
-    return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(Number(price));
-}
-
 function MenuItemCard({ item }: { item: ApiMenuItem }) {
+    const { t } = useTranslation();
+    const tags = (item.tags ?? []).filter(isMenuItemTagId);
+
     return (
         <article className="group rounded-2xl overflow-hidden bg-white/[0.03] border border-white/10 hover:border-gold/20 hover:bg-white/[0.05] transition-all duration-300">
             <div className="aspect-[4/3] relative bg-charcoal overflow-hidden">
+                {tags.length > 0 && (
+                    <div className="absolute top-3 left-3 z-10 flex flex-wrap gap-1.5 max-w-[calc(100%-1.5rem)]">
+                        {tags.map((tag) => (
+                            <span
+                                key={tag}
+                                className="inline-block text-[9px] sm:text-[10px] tracking-[0.14em] uppercase font-semibold px-2 py-1 bg-charcoal/85 border border-gold/45 text-gold backdrop-blur-sm rounded-sm shadow-sm"
+                            >
+                                {t(`menu.item_tags.${tag}`)}
+                            </span>
+                        ))}
+                    </div>
+                )}
                 {item.imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -45,14 +58,9 @@ function MenuItemCard({ item }: { item: ApiMenuItem }) {
                 <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-charcoal/90 to-transparent pointer-events-none" />
             </div>
             <div className="p-5">
-                <div className="flex items-start justify-between gap-3">
-                    <h4 className="font-serif text-cream text-lg leading-tight flex-1 min-w-0">
-                        {item.name}
-                    </h4>
-                    <span className="text-gold font-semibold shrink-0 whitespace-nowrap">
-                        {formatPrice(item.price)}
-                    </span>
-                </div>
+                <h4 className="font-serif text-cream text-lg leading-tight">
+                    {item.name}
+                </h4>
                 {item.description && (
                     <p className="text-cream/50 text-sm mt-2 line-clamp-2 leading-relaxed">
                         {item.description}
@@ -98,13 +106,15 @@ export function MenuSection() {
     const isLoading = itemsLoading || catsLoading;
 
     return (
-        <section id="menu" className="pt-24 pb-32 lg:pt-32 lg:pb-40 bg-charcoal-light">
-            <div className="max-w-7xl mx-auto px-6 lg:px-12">
-                <div className="text-center mb-16">
-                    <p className="section-label mb-4">{t("menu.label")}</p>
-                    <h2 className="section-title mb-4">{t("menu.title")}</h2>
-                    <div className="divider-gold" />
-                    <p className="section-subtitle max-w-xl mx-auto">{t("menu.subtitle")}</p>
+        <section id="menu" className="pt-24 pb-32 lg:pt-32 lg:pb-40 bg-charcoal-light overflow-x-hidden">
+            <SectionContainer>
+                <div className="mb-16 flex w-full flex-col items-center">
+                    <p className="section-label mb-4 w-full text-center">{t("menu.label")}</p>
+                    <h2 className="section-title mb-4 w-full max-w-4xl text-center">{t("menu.title")}</h2>
+                    <div className="divider-gold mx-auto" aria-hidden />
+                    <p className="mt-5 max-w-3xl w-full px-4 text-center font-serif text-lg sm:text-xl md:text-[1.35rem] text-cream/70 italic font-light leading-relaxed tracking-[0.02em]">
+                        {t("menu.subtitle")}
+                    </p>
                 </div>
 
                 <div className="flex justify-center mb-14">
@@ -177,7 +187,7 @@ export function MenuSection() {
                         })}
                     </div>
                 )}
-            </div>
+            </SectionContainer>
         </section>
     );
 }

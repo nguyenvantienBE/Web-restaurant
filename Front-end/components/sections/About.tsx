@@ -2,13 +2,14 @@
 
 import { useTranslation } from "react-i18next";
 import { Clock, MapPin, Award } from "lucide-react";
+import { SectionContainer } from "@/components/layout/SectionContainer";
 
 export function About() {
     const { t } = useTranslation();
 
     return (
-        <section id="about" className="py-24 lg:py-32 bg-charcoal">
-            <div className="max-w-7xl mx-auto px-6 lg:px-12">
+        <section id="about" className="py-24 lg:py-32 bg-charcoal overflow-x-hidden">
+            <SectionContainer>
                 <div className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-center">
                     {/* Left: Text */}
                     <div>
@@ -82,7 +83,7 @@ export function About() {
                         </div>
                     </div>
                 </div>
-            </div>
+            </SectionContainer>
         </section>
     );
 }

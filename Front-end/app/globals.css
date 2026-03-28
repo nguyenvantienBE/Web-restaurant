@@ -27,6 +27,7 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: clip;
 }
 
 body {
@@ -35,6 +36,7 @@ body {
   font-family: Inter, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   font-size: 15px;
+  overflow-x: clip;
 }
 
 /* ─── SCROLLBAR ───────────────────────────────── */
@@ -304,6 +306,14 @@ select.input-dark {
 }
 
 /* ─── SECTION HEADER ──────────────────────────── */
+.section-label {
+  font-size: 0.6875rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: #C9A96E;
+}
+
 .section-title {
   font-family: "Playfair Display", serif;
   color: #F5F0E8;
@@ -312,10 +322,50 @@ select.input-dark {
   letter-spacing: -0.01em;
 }
 
+/* Short gold line under section headers (use mx-auto when centered) */
+.divider-gold {
+  height: 1px;
+  width: 100%;
+  max-width: 7rem;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(201, 169, 110, 0.45) 20%,
+    rgba(201, 169, 110, 0.45) 80%,
+    transparent
+  );
+}
+
 .section-sub {
   color: rgba(245, 240, 232, 0.35);
   font-size: 0.9rem;
   margin-top: 0.3rem;
+}
+
+/* ─── RESERVATION FORM (luxury notched panel) ───────────────── */
+.reservation-form-panel {
+  position: relative;
+  background: linear-gradient(165deg, #211c18 0%, #1a1512 42%, #14110e 100%);
+  box-shadow:
+    0 32px 100px -24px rgba(0, 0, 0, 0.88),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  clip-path: polygon(
+    16px 0%,
+    calc(100% - 16px) 0%,
+    100% 16px,
+    100% calc(100% - 16px),
+    calc(100% - 16px) 100%,
+    16px 100%,
+    0% calc(100% - 16px),
+    0% 16px
+  );
+  border: 1px solid rgba(184, 149, 90, 0.48);
+}
+
+.reservation-form-panel input[type="date"],
+.reservation-form-panel input[type="time"],
+.reservation-form-panel select {
+  color-scheme: dark;
 }
 
 /* ─── GOLD DIVIDER ────────────────────────────── */

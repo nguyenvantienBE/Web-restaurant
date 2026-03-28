@@ -25,7 +25,7 @@ export function ReservationCTA() {
             <div className="relative max-w-2xl mx-auto px-6 lg:px-12 text-center">
                 <p className="section-label mb-6">{t("reservation.label")}</p>
                 <h2 className="section-title mb-6">{t("reservation.title")}</h2>
-                <div className="divider-gold" />
+                <div className="divider-gold mx-auto" aria-hidden />
                 <p className="section-subtitle mb-10">{t("reservation.subtitle")}</p>
                 <button
                     type="button"

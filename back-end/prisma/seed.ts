@@ -59,9 +59,15 @@ async function main() {
         { code: 'INVOICE_GENERATE', name: 'Generate Invoice', category: 'INVOICE' },
         { code: 'INVOICE_SEND_EMAIL', name: 'Send Invoice Email', category: 'INVOICE' },
 
+        // Settings (admin)
+        { code: 'SETTINGS_MANAGE', name: 'Manage Restaurant Settings', category: 'SETTINGS' },
+
         // Report permissions
         { code: 'REPORT_VIEW', name: 'View Reports', category: 'REPORT' },
         { code: 'SHIFT_CLOSE', name: 'Close Shift', category: 'REPORT' },
+        { code: 'SHIFT_OPEN', name: 'Open Shift', category: 'REPORT' },
+        { code: 'SHIFT_EXPENSE', name: 'Record Shift Cash Expense', category: 'REPORT' },
+        { code: 'SHIFT_APPROVE_DIFF', name: 'Approve Cash Drawer Difference', category: 'REPORT' },
 
         // Reservation permissions
         { code: 'RESERVATION_READ', name: 'Read Reservations', category: 'RESERVATION' },
@@ -116,7 +122,7 @@ async function main() {
         'MENU_READ', 'MENU_CREATE', 'MENU_UPDATE', 'MENU_DELETE',
         'CATEGORY_READ', 'CATEGORY_CREATE', 'CATEGORY_UPDATE', 'CATEGORY_DELETE',
         'TABLE_READ', 'TABLE_CREATE', 'TABLE_UPDATE', 'TABLE_DELETE', 'QR_GENERATE',
-        'ORDER_READ', 'REPORT_VIEW', 'SHIFT_CLOSE',
+        'ORDER_READ', 'REPORT_VIEW', 'SHIFT_CLOSE', 'SHIFT_OPEN', 'SHIFT_EXPENSE', 'SHIFT_APPROVE_DIFF',
         'RESERVATION_READ', 'RESERVATION_UPDATE',
     ];
 
@@ -144,6 +150,7 @@ async function main() {
         'ITEM_SERVE', 'STAFF_CALL_HANDLE',
         'PAYMENT_READ', 'PAYMENT_CONFIRM',
         'INVOICE_GENERATE', 'INVOICE_SEND_EMAIL',
+        'SHIFT_OPEN', 'SHIFT_EXPENSE', 'SHIFT_CLOSE',
     ];
 
     await prisma.rolePermission.createMany({
@@ -200,14 +207,12 @@ async function main() {
     ];
 
     for (const cat of categories) {
-        await prisma.category.upsert({
-            where: { id: cat.name },
-            update: {},
-            create: cat,
-        });
+        const existing = await prisma.category.findFirst({ where: { name: cat.name } });
+        if (!existing) {
+            await prisma.category.create({ data: cat });
+        }
     }
 
-    // Get the first category
     const appetizer = await prisma.category.findFirst({ where: { name: 'Appetizers' } });
 
     // Create sample menu items
@@ -215,7 +220,7 @@ async function main() {
         console.log('Creating sample menu items...');
         await prisma.menuItem.upsert({
             where: { id: 'test-item-1' },
-            update: {},
+            update: { tags: ['BEST_SELLER', 'RECOMMENDED'] },
             create: {
                 id: 'test-item-1',
                 name: 'Spring Rolls',
@@ -223,6 +228,7 @@ async function main() {
                 price: 5.99,
                 categoryId: appetizer.id,
                 isAvailable: true,
+                tags: ['BEST_SELLER', 'RECOMMENDED'],
             },
         });
     }
@@ -241,6 +247,21 @@ async function main() {
             },
         });
     }
+
+    // User nội bộ để gán “mở ca” khi hệ thống tự tạo ca trong giờ vận hành (không đăng nhập)
+    const sysHash = await bcrypt.hash('__no_login_system__', 10);
+    await prisma.user.upsert({
+        where: { email: 'system.shift@restaurant.local' },
+        update: {},
+        create: {
+            email: 'system.shift@restaurant.local',
+            fullName: 'Ca tự động (hệ thống)',
+            password: sysHash,
+            isActive: false,
+            roleId: adminRole.id,
+        },
+    });
+    console.log('Upserted system.shift@restaurant.local for auto-shifts.');
 
     console.log('✅ Seed completed!');
     console.log('📧 Admin credentials: admin@restaurant.com / admin123');

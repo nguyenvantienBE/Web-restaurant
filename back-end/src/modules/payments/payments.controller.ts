@@ -4,6 +4,7 @@ import { PaymentsService } from './payments.service';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { ClaimsGuard } from '@/common/guards/claims.guard';
 import { RequireClaims } from '@/common/decorators/claims.decorator';
+import { ConfirmPaymentDto } from './dto/confirm-payment.dto';
 
 @ApiTags('Payments')
 @Controller('payments')
@@ -24,11 +25,8 @@ export class PaymentsController {
 
   @Patch(':id/confirm')
   @RequireClaims('PAYMENT_CONFIRM')
-  @ApiOperation({ summary: 'Confirm a payment (Cashier)' })
-  confirmPayment(
-    @Param('id') id: string,
-    @Body() body?: { customerEmail?: string },
-  ) {
-    return this.paymentsService.confirmPayment(id, body?.customerEmail);
+  @ApiOperation({ summary: 'Confirm a payment (Cashier) — tùy chọn gửi hóa đơn email' })
+  confirmPayment(@Param('id') id: string, @Body() body?: ConfirmPaymentDto) {
+    return this.paymentsService.confirmPayment(id, body);
   }
 }

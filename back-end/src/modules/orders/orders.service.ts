@@ -10,6 +10,7 @@ import { CreateDineInOrderDto, CreateTakeawayOrderDto } from './dto/create-order
 import { OrderStatus, ItemStatus, TableStatus, Prisma } from '@prisma/client';
 import { getPaginationParams, createPaginationMeta } from '@/common/utils/pagination.util';
 import { RealtimeGateway } from '@/realtime/realtime.gateway';
+import { ShiftsService } from '../shifts/shifts.service';
 
 @Injectable()
 export class OrdersService {
@@ -17,6 +18,7 @@ export class OrdersService {
     private prisma: PrismaService,
     @Inject(forwardRef(() => RealtimeGateway))
     private realtimeGateway: RealtimeGateway,
+    private shiftsService: ShiftsService,
   ) {}
 
   private generateOrderNumber(): string {
@@ -89,13 +91,17 @@ export class OrdersService {
     const tax = subtotal * 0.1; // 10% tax
     const total = subtotal + tax;
 
-    // Create order
+    const shiftId = await this.shiftsService.requireOpenShiftId();
+
+    // Đơn khách qua QR: vào thẳng CONFIRMED → bếp nhận ticket (không cần thu ngân bấm xác nhận)
     const order = await this.prisma.order.create({
       data: {
         orderNumber: this.generateOrderNumber(),
         type: 'DINE_IN',
-        status: 'NEW',
+        status: 'CONFIRMED',
+        confirmedById: null,
         sessionId: session.id,
+        shiftId,
         subtotal: new Prisma.Decimal(subtotal),
         tax: new Prisma.Decimal(tax),
         total: new Prisma.Decimal(total),
@@ -118,16 +124,60 @@ export class OrdersService {
       },
     });
 
-    // Update table status to ORDERING
-    await this.prisma.table.update({
+    const tableAfterOrder = await this.prisma.table.update({
       where: { id: table.id },
       data: { status: 'ORDERING' },
     });
 
-    // Emit real-time event
     this.realtimeGateway.emitOrderNew(order);
+    this.realtimeGateway.emitOrderConfirmed(order);
+    this.realtimeGateway.emitTableStatusChanged(tableAfterOrder);
 
     return order;
+  }
+
+  /** Trạng thái bàn + đơn (khách QR, không auth) */
+  async getPublicTableSnapshot(tableCode: string) {
+    const table = await this.prisma.table.findUnique({
+      where: { tableCode },
+      include: {
+        sessions: {
+          where: { status: 'OPEN' },
+          include: {
+            orders: {
+              where: { status: { notIn: ['CANCELLED'] } },
+              orderBy: { createdAt: 'desc' },
+              include: {
+                orderItems: { include: { menuItem: true } },
+                payment: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!table) {
+      throw new NotFoundException('Table not found');
+    }
+
+    const session = table.sessions[0];
+    return {
+      table: {
+        id: table.id,
+        tableCode: table.tableCode,
+        tableName: table.tableName,
+        floor: table.floor,
+        status: table.status,
+        capacity: table.capacity,
+      },
+      session: session
+        ? {
+            id: session.id,
+            orders: session.orders,
+          }
+        : null,
+    };
   }
 
   async createTakeawayOrder(createDto: CreateTakeawayOrderDto) {
@@ -166,12 +216,15 @@ export class OrdersService {
     const tax = subtotal * 0.1;
     const total = subtotal + tax;
 
+    const shiftId = await this.shiftsService.requireOpenShiftId();
+
     // Create order
     const order = await this.prisma.order.create({
       data: {
         orderNumber: this.generateOrderNumber(),
         type: 'TAKEAWAY',
         status: 'NEW',
+        shiftId,
         subtotal: new Prisma.Decimal(subtotal),
         tax: new Prisma.Decimal(tax),
         total: new Prisma.Decimal(total),
@@ -220,6 +273,7 @@ export class OrdersService {
           confirmedBy: {
             select: { id: true, fullName: true, email: true },
           },
+          payment: true,
         },
         orderBy: { createdAt: 'desc' },
       }),
@@ -303,6 +357,8 @@ export class OrdersService {
       throw new NotFoundException('Order not found');
     }
 
+    await this.shiftsService.ensureOrderNotLocked(id);
+
     const cancelled = await this.prisma.$transaction(async (tx) => {
       // Cancel all order items
       await tx.orderItem.updateMany({
@@ -340,6 +396,8 @@ export class OrdersService {
     if (!item) {
       throw new NotFoundException('Order item not found');
     }
+
+    await this.shiftsService.ensureOrderNotLocked(item.orderId);
 
     // Validate state transitions
     const validTransitions: Record<ItemStatus, ItemStatus[]> = {

@@ -5,6 +5,7 @@ import { api, parseResponse } from "@/lib/api";
 export interface ApiCategory {
     id: string;
     name: string;
+    nameVi?: string | null;
     description?: string | null;
     isActive: boolean;
     sortOrder: number;
@@ -18,6 +19,10 @@ export function useCategories() {
         queryFn: async () => {
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/categories`);
             const json = await res.json();
+            if (!res.ok) {
+                const msg = (json as { message?: string })?.message ?? res.statusText;
+                throw new Error(typeof msg === "string" ? msg : "Không tải được danh mục");
+            }
             const data = json.data ?? json;
             return Array.isArray(data) ? data : [];
         },
@@ -29,9 +34,12 @@ export function useCategories() {
 export interface ApiMenuItem {
     id: string;
     name: string;
+    nameVi?: string | null;
     description?: string | null;
+    descriptionVi?: string | null;
     price: string;
     imageUrl?: string | null;
+    tags?: string[];
     isAvailable: boolean;
     preparationTime?: number | null;
     sortOrder: number;
@@ -55,6 +63,10 @@ export function useMenuItems(categoryId?: string) {
         queryFn: async () => {
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/menu-items${params}`);
             const json = await res.json();
+            if (!res.ok) {
+                const msg = (json as { message?: string })?.message ?? res.statusText;
+                throw new Error(typeof msg === "string" ? msg : "Không tải được thực đơn");
+            }
             const parsed: MenuItemsResponse | ApiMenuItem[] = json.data !== undefined ? json : json;
             if (Array.isArray(parsed)) return parsed;
             const obj = parsed as MenuItemsResponse;
@@ -75,6 +87,7 @@ export function useCreateMenuItem() {
             imageUrl?: string;
             preparationTime?: number;
             categoryId: string;
+            tags?: string[];
         }) => {
             const res = await api.post("/menu-items", payload);
             return parseResponse<ApiMenuItem>(res);

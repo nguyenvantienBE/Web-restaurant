@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslation } from "react-i18next";
+import { SectionContainer } from "@/components/layout/SectionContainer";
 
 const galleryImages = [
     {
@@ -34,13 +35,13 @@ export function Gallery() {
     const { t } = useTranslation();
 
     return (
-        <section id="gallery" className="py-24 lg:py-32 bg-charcoal-medium border-t border-white/5">
-            <div className="max-w-7xl mx-auto px-6 lg:px-12">
+        <section id="gallery" className="py-24 lg:py-32 bg-charcoal-medium border-t border-white/5 overflow-x-hidden">
+            <SectionContainer>
                 {/* Header */}
-                <div className="text-center mb-16">
-                    <p className="section-label mb-4">{t("gallery.label")}</p>
-                    <h2 className="section-title">{t("gallery.title")}</h2>
-                    <div className="divider-gold" />
+                <div className="mb-16 flex w-full flex-col items-center">
+                    <p className="section-label mb-4 w-full text-center">{t("gallery.label")}</p>
+                    <h2 className="section-title w-full max-w-4xl text-center">{t("gallery.title")}</h2>
+                    <div className="divider-gold mx-auto" aria-hidden />
                 </div>
 
                 {/* Masonry-style grid */}
@@ -61,7 +62,7 @@ export function Gallery() {
                         </div>
                     ))}
                 </div>
-            </div>
+            </SectionContainer>
         </section>
     );
 }

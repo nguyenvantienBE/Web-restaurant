@@ -43,9 +43,13 @@ export const CLAIMS = {
     PAYMENT_CONFIRM: "PAYMENT_CONFIRM",
     INVOICE_GENERATE: "INVOICE_GENERATE",
     INVOICE_SEND_EMAIL: "INVOICE_SEND_EMAIL",
-    // Reports/Shift
+    SETTINGS_MANAGE: "SETTINGS_MANAGE",
+    // Reports/Shift (POS)
     REPORT_VIEW: "REPORT_VIEW",
     SHIFT_CLOSE: "SHIFT_CLOSE",
+    SHIFT_OPEN: "SHIFT_OPEN",
+    SHIFT_EXPENSE: "SHIFT_EXPENSE",
+    SHIFT_APPROVE_DIFF: "SHIFT_APPROVE_DIFF",
     // Reservations
     RESERVATION_READ: "RESERVATION_READ",
     RESERVATION_UPDATE: "RESERVATION_UPDATE",
@@ -256,6 +260,10 @@ export interface Reservation {
     area?: TableArea;
     note?: string;
     status: ReservationStatus;
+    /** Mã phiếu đặt bàn (khách đưa tại quầy) */
+    confirmationCode?: string;
+    checkedInAt?: string;
+    tableCode?: string;
     handledBy?: string;
     createdAt: string;
 }
@@ -318,6 +326,22 @@ export interface SystemConfig {
     serviceChargeRate: number;
     invoiceEmailFrom: string;
     currency: string;
+}
+
+/** GET/PATCH /settings/restaurant — cấu hình nhà hàng & template email hóa đơn */
+export interface RestaurantSettingsDto {
+    id: string;
+    restaurantName: string;
+    hotline: string | null;
+    address: string | null;
+    website: string | null;
+    emailFrom: string | null;
+    emailTemplatePlain: string;
+    emailTemplatePdf: string;
+    /** HH:mm — giờ VN, ca tự mở trong khung này */
+    operationsOpenTime: string;
+    operationsCloseTime: string;
+    updatedAt: string;
 }
 
 // ---- SOCKET EVENTS ----------------------------------------

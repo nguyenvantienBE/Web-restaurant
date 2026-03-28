@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { Menu, X, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useReservationModal } from "@/lib/reservation-modal";
+import { SectionContainer } from "@/components/layout/SectionContainer";
 
 const navLinks: { key: string; href: string; isReservation?: boolean }[] = [
     { key: "nav.home", href: "/" },
@@ -40,7 +41,7 @@ export function Navbar() {
                     : "bg-transparent"
             )}
         >
-            <div className="max-w-7xl mx-auto px-6 lg:px-12">
+            <SectionContainer>
                 <div className="flex items-center justify-between h-20 lg:h-24">
                     {/* Logo */}
                     <Link href="/" className="flex items-center gap-3 group">
@@ -125,7 +126,7 @@ export function Navbar() {
                         </button>
                     </div>
                 </div>
-            </div>
+            </SectionContainer>
 
             {/* Mobile Menu */}
             <div

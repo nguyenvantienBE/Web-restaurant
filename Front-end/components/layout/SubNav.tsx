@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useTranslation } from "react-i18next";
 import { ChevronLeft } from "lucide-react";
 import { useReservationModal } from "@/lib/reservation-modal";
+import { SectionContainer } from "@/components/layout/SectionContainer";
 
 const subNavLinks = [
     { key: "nav.information", href: "#about" },
@@ -18,7 +19,7 @@ export function SubNav() {
 
     return (
         <div className="bg-charcoal border-t border-white/10 z-40">
-            <div className="max-w-7xl mx-auto px-6 lg:px-12">
+            <SectionContainer>
                 <div className="flex items-center justify-between h-14 lg:h-16">
                     {/* Brand */}
                     <div className="flex items-center gap-3">
@@ -50,7 +51,7 @@ export function SubNav() {
                         {t("subnav.book")}
                     </button>
                 </div>
-            </div>
+            </SectionContainer>
         </div>
     );
 }

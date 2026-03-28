@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useCallback } from "react";
 import { AuthUser, ClaimValue, UserRole } from "@/lib/types";
 import { api, saveTokens, clearTokens } from "@/lib/api";
+import { disconnectSocket } from "@/lib/socket";
 
 interface AuthContextType {
     user: AuthUser | null;
@@ -93,6 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 // ignore logout errors
             }
         }
+        disconnectSocket();
         clearTokens();
         setUser(null);
     }, []);

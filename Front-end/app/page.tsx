@@ -10,7 +10,7 @@ import { LiveStatus } from "@/components/sections/LiveStatus";
 
 export default function Home() {
   return (
-    <main>
+    <main className="w-full min-w-0 overflow-x-clip">
       <Navbar />
       <Hero />
       <SubNav />

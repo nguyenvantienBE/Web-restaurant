@@ -34,3 +34,12 @@ export function useUpdateReservationStatus() {
     });
 }
 
+export function useSendReservationEmail() {
+    return useMutation({
+        mutationFn: async (id: string) => {
+            const res = await api.post(`/reservations/${id}/send-email`, {});
+            return parseResponse<{ message: string }>(res);
+        },
+    });
+}
+

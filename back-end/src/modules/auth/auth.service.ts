@@ -118,8 +118,8 @@ export class AuthService {
     // Generate new tokens
     const tokens = await this.generateTokens(user.id, user.email, user.role.name, claims);
 
-    // Delete old refresh token and create new one
-    await this.prisma.refreshToken.delete({ where: { token: refreshToken } });
+    // Xóa refresh cũ (deleteMany: không lỗi khi token đã bị xóa / trùng request)
+    await this.prisma.refreshToken.deleteMany({ where: { token: refreshToken } });
     await this.prisma.refreshToken.create({
       data: {
         token: tokens.refreshToken,

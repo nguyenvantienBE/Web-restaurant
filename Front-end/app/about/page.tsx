@@ -30,7 +30,7 @@ export default function AboutPage() {
                     <h1 className="font-serif text-cream text-5xl md:text-7xl">
                         The Chef
                     </h1>
-                    <div className="divider-gold" />
+                    <div className="divider-gold mx-auto" aria-hidden />
                 </div>
             </section>
 

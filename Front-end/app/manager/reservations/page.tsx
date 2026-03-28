@@ -6,9 +6,10 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Reservation, ReservationStatus, CLAIMS } from "@/lib/types";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
-import { Search, Users, Phone, Calendar, Clock, Mail, Check, X } from "lucide-react";
+import { Search, Users, Phone, Calendar, Clock, Mail, Check, X, Ticket, Send, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { useReservations, useUpdateReservationStatus } from "@/lib/hooks/useReservations";
+import { useReservations, useUpdateReservationStatus, useSendReservationEmail } from "@/lib/hooks/useReservations";
+import { useCashierQueriesRefresh } from "@/lib/hooks/useCashierQueriesRefresh";
 
 const STATUS_TABS: { status: ReservationStatus | "all"; label: string }[] = [
     { status: "all", label: "Tất cả" },
@@ -24,11 +25,14 @@ const AREA_VI: Record<string, string> = {
 };
 
 export default function ReservationsPage() {
+    useCashierQueriesRefresh(true, { includeReservations: true });
     const { hasClaim } = useAuth();
     const [tab, setTab] = useState<ReservationStatus | "all">("PENDING");
     const [search, setSearch] = useState("");
     const { data: reservations = [], isLoading } = useReservations(tab);
     const updateStatusMutation = useUpdateReservationStatus();
+    const sendEmailMutation = useSendReservationEmail();
+    const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
 
     const filtered = reservations.filter((r) => {
         const matchTab = tab === "all" || r.status === tab;
@@ -37,6 +41,18 @@ export default function ReservationsPage() {
     });
 
     const pendingCount = reservations.filter((r) => r.status === "PENDING").length;
+
+    const handleSendEmail = async (id: string) => {
+        setSendingEmailId(id);
+        try {
+            await sendEmailMutation.mutateAsync(id);
+            toast.success("Đã gửi email xác nhận tới khách");
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Gửi email thất bại");
+        } finally {
+            setSendingEmailId(null);
+        }
+    };
 
     const handleStatusChange = async (id: string, status: ReservationStatus) => {
         try {
@@ -101,6 +117,11 @@ export default function ReservationsPage() {
                                 <div className="flex items-center gap-2 flex-wrap">
                                     <span className="text-cream font-semibold text-base">{res.customerName}</span>
                                     <StatusBadge type="reservation" status={res.status} lang="vi" />
+                                    {res.confirmationCode && (
+                                        <span className="inline-flex items-center gap-1 text-xs font-mono text-gold/90 bg-gold/10 border border-gold/25 px-2 py-0.5 rounded">
+                                            <Ticket size={11} /> {res.confirmationCode}
+                                        </span>
+                                    )}
                                     {res.area && <span className="text-cream/40 text-xs">{AREA_VI[res.area]}</span>}
                                 </div>
                                 <div className="flex flex-wrap gap-4 text-sm text-cream/60">
@@ -113,22 +134,55 @@ export default function ReservationsPage() {
                                 {res.note && <p className="text-yellow-400 text-sm">📝 {res.note}</p>}
                             </div>
                             {/* Actions */}
-                            {res.status === "PENDING" && hasClaim(CLAIMS.RESERVATION_UPDATE) && (
-                                <div className="flex gap-3 shrink-0">
+                            <div className="flex flex-wrap gap-2 sm:flex-col sm:items-end shrink-0">
+                                {res.customerEmail && hasClaim(CLAIMS.RESERVATION_UPDATE) && (
                                     <button
-                                        onClick={() => handleStatusChange(res.id, "CONFIRMED")}
-                                        className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 text-sm rounded-lg transition-colors font-semibold"
+                                        type="button"
+                                        onClick={() => handleSendEmail(res.id)}
+                                        disabled={
+                                            sendingEmailId === res.id ||
+                                            res.status === "PENDING" ||
+                                            res.status === "CANCELLED"
+                                        }
+                                        title={
+                                            res.status === "PENDING"
+                                                ? "Xác nhận đơn trước khi gửi email"
+                                                : res.status === "CANCELLED"
+                                                    ? "Không gửi email cho đơn đã hủy"
+                                                    : "Gửi lại email xác nhận đặt bàn"
+                                        }
+                                        className={cn(
+                                            "flex items-center gap-2 px-4 py-2.5 text-sm rounded-lg transition-colors font-medium border",
+                                            res.status === "PENDING" || res.status === "CANCELLED"
+                                                ? "border-white/10 text-cream/30 cursor-not-allowed"
+                                                : "border-gold/40 text-gold hover:bg-gold/10",
+                                        )}
                                     >
-                                        <Check size={15} /> Xác nhận
+                                        {sendingEmailId === res.id ? (
+                                            <Loader2 size={15} className="animate-spin" />
+                                        ) : (
+                                            <Send size={15} />
+                                        )}
+                                        Gửi email khách
                                     </button>
-                                    <button
-                                        onClick={() => handleStatusChange(res.id, "CANCELLED")}
-                                        className="flex items-center gap-2 border border-red-500/40 text-red-400 hover:bg-red-500/20 px-5 py-2.5 text-sm rounded-lg transition-colors font-semibold"
-                                    >
-                                        <X size={15} /> Từ chối
-                                    </button>
-                                </div>
-                            )}
+                                )}
+                                {res.status === "PENDING" && hasClaim(CLAIMS.RESERVATION_UPDATE) && (
+                                    <div className="flex gap-3 flex-wrap sm:justify-end">
+                                        <button
+                                            onClick={() => handleStatusChange(res.id, "CONFIRMED")}
+                                            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 text-sm rounded-lg transition-colors font-semibold"
+                                        >
+                                            <Check size={15} /> Xác nhận
+                                        </button>
+                                        <button
+                                            onClick={() => handleStatusChange(res.id, "CANCELLED")}
+                                            className="flex items-center gap-2 border border-red-500/40 text-red-400 hover:bg-red-500/20 px-5 py-2.5 text-sm rounded-lg transition-colors font-semibold"
+                                        >
+                                            <X size={15} /> Từ chối
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     ))}
                 </div>

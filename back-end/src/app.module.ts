@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import configuration from './config/configuration';
@@ -17,6 +18,9 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
 import { PaymentsModule } from './modules/payments/payments.module';
 import { InvoicesModule } from './modules/invoices/invoices.module';
 import { ReportsModule } from './modules/reports/reports.module';
+import { ReservationsModule } from './modules/reservations/reservations.module';
+import { ShiftsModule } from './modules/shifts/shifts.module';
+import { SettingsModule } from './modules/settings/settings.module';
 
 @Module({
   imports: [
@@ -24,6 +28,7 @@ import { ReportsModule } from './modules/reports/reports.module';
       load: [configuration],
       isGlobal: true,
     }),
+    ScheduleModule.forRoot(),
     AuthModule,
     UsersModule,
     MenuItemsModule,
@@ -35,6 +40,9 @@ import { ReportsModule } from './modules/reports/reports.module';
     PaymentsModule,
     InvoicesModule,
     ReportsModule,
+    ReservationsModule,
+    ShiftsModule,
+    SettingsModule,
   ],
   providers: [
     PrismaService,

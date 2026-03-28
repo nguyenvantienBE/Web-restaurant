@@ -19,6 +19,10 @@ export const RealtimeEvents = {
   // Payments
   PAYMENT_COMPLETED: 'payment:completed',
 
+  // Reservations
+  RESERVATION_NEW: 'reservation:new',
+  RESERVATION_UPDATED: 'reservation:updated',
+
   // Connection
   JOIN_ROOM: 'join:room',
 };
@@ -27,4 +31,6 @@ export const RealtimeRooms = {
   CASHIER: 'room:cashier',
   KITCHEN: 'room:kitchen',
   MANAGER: 'room:manager',
+  /** Tất cả nhân sự (chuông đặt bàn, v.v.) */
+  STAFF: 'room:staff',
 };

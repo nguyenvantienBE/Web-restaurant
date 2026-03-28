@@ -11,10 +11,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
+import { getPublicFrontendOrigin } from "@/lib/public-url";
 import { Plus, QrCode, Edit2, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
 import { useTables, useCreateTable, useUpdateTable, useDeleteTable, useGenerateTableQR, ApiTable } from "@/lib/hooks/useTables";
+import { useCashierQueriesRefresh } from "@/lib/hooks/useCashierQueriesRefresh";
 
 const tableSchema = z.object({
     tableCode: z.string().min(1, "Mã bàn bắt buộc"),
@@ -28,6 +30,7 @@ const AREA_LABELS: Record<TableArea, string> = {
 };
 
 export default function ManagerTablesPage() {
+    useCashierQueriesRefresh(true);
     const { hasClaim } = useAuth();
     const { data: apiTables = [], isLoading } = useTables();
     const createTable = useCreateTable();
@@ -107,8 +110,7 @@ export default function ManagerTablesPage() {
         });
     };
 
-    const getQRValue = (table: Table) =>
-        `${typeof window !== "undefined" ? window.location.origin : process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000"}/order/${table.tableCode}`;
+    const getQRValue = (table: Table) => `${getPublicFrontendOrigin()}/order/${table.tableCode}`;
 
     return (
         <DashboardLayout>

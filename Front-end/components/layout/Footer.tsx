@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
 import { Instagram, Facebook, Twitter } from "lucide-react";
+import { SectionContainer } from "@/components/layout/SectionContainer";
 
 export function Footer() {
     const { t } = useTranslation();
@@ -12,7 +13,7 @@ export function Footer() {
             id="location"
             className="bg-charcoal border-t border-white/10 pt-20 lg:pt-28 pb-8"
         >
-            <div className="max-w-7xl mx-auto px-6 lg:px-12">
+            <SectionContainer>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 mb-16">
                     {/* Brand */}
                     <div className="lg:col-span-1">
@@ -140,7 +141,7 @@ export function Footer() {
                         </div>
                     </div>
                 </div>
-            </div>
+            </SectionContainer>
         </footer>
     );
 }

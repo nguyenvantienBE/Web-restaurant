@@ -1,5 +1,6 @@
-import { IsNotEmpty, IsString, IsNumber, IsOptional, IsBoolean } from 'class-validator';
+import { IsNotEmpty, IsString, IsNumber, IsOptional, IsBoolean, IsEnum } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { TableStatus } from '@prisma/client';
 
 export class CreateTableDto {
   @ApiProperty()
@@ -53,4 +54,9 @@ export class UpdateTableDto {
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
+
+  @ApiPropertyOptional({ enum: TableStatus })
+  @IsEnum(TableStatus)
+  @IsOptional()
+  status?: TableStatus;
 }

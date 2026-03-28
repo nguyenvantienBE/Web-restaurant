@@ -14,6 +14,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/auth";
 import { CLAIMS } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { MENU_ITEM_TAG_IDS, type MenuItemTagId, isMenuItemTagId } from "@/lib/menuItemTags";
 import { Plus, Search, Edit2, Trash2, ToggleLeft, ToggleRight, UtensilsCrossed, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -37,6 +38,7 @@ const menuItemSchema = z.object({
     preparationTime: z.coerce.number().optional(),
     // Cho phép bất kỳ string để lưu data URL (base64) hoặc URL bình thường
     imageUrl: z.string().optional().or(z.literal("")),
+    tags: z.array(z.enum(["BEST_SELLER", "RECOMMENDED", "CHEFS_PICK", "NEW"])).optional(),
 });
 type MenuItemForm = z.infer<typeof menuItemSchema>;
 
@@ -55,8 +57,8 @@ function getCategoryLabel(name: string, lang: string) {
     return lang === "vi" ? (CATEGORY_LABELS_VI[name] ?? name) : name;
 }
 
-const MAX_IMAGE_WIDTH = 800;
-const IMAGE_QUALITY = 0.82;
+const MAX_IMAGE_WIDTH = 640;
+const IMAGE_QUALITY = 0.72;
 
 function compressImageFile(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -90,7 +92,7 @@ function compressImageFile(file: File): Promise<string> {
 
 export default function ManagerMenuPage() {
     const { hasClaim } = useAuth();
-    const { i18n } = useTranslation();
+    const { t, i18n } = useTranslation();
     const lang = i18n.language === "vi" ? "vi" : "en";
     const { data: items = [], isLoading: itemsLoading } = useMenuItems();
     const { data: categories = [], isLoading: catsLoading } = useCategories();
@@ -105,9 +107,11 @@ export default function ManagerMenuPage() {
     const [deleteConfirm, setDeleteConfirm] = useState<ApiMenuItem | null>(null);
     const [imageCompressing, setImageCompressing] = useState(false);
 
-    const { register, handleSubmit, reset, control, setValue, formState: { errors, isSubmitting } } = useForm<MenuItemForm>({
+    const { register, handleSubmit, reset, control, setValue, watch, formState: { errors, isSubmitting } } = useForm<MenuItemForm>({
         resolver: zodResolver(menuItemSchema) as never,
+        defaultValues: { tags: [] },
     });
+    const selectedTags = watch("tags") ?? [];
 
     const uniqueCategories = Array.from(new Map(categories.map((c) => [c.name, c])).values());
     const filtered = items.filter((i) => {
@@ -119,9 +123,13 @@ export default function ManagerMenuPage() {
         return matchSearch && matchCat;
     });
 
-    const openCreate = () => { setEditItem(null); reset({}); setModalOpen(true); };
+    const openCreate = () => { setEditItem(null); reset({ tags: [] }); setModalOpen(true); };
     const openEdit = (item: ApiMenuItem) => {
         setEditItem(item);
+        const raw = item.tags ?? [];
+        const tags = raw.filter((t): t is MenuItemTagId =>
+            (MENU_ITEM_TAG_IDS as readonly string[]).includes(t)
+        );
         reset({
             name: item.name,
             description: item.description ?? "",
@@ -129,18 +137,26 @@ export default function ManagerMenuPage() {
             price: Number(item.price),
             preparationTime: item.preparationTime ?? undefined,
             imageUrl: item.imageUrl ?? "",
+            tags,
         });
         setModalOpen(true);
     };
 
+    const toggleTag = (id: MenuItemTagId) => {
+        const cur = watch("tags") ?? [];
+        const next = cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id];
+        setValue("tags", next, { shouldValidate: true, shouldDirty: true });
+    };
+
     const onSubmit = async (data: MenuItemForm) => {
         const { preparationTime: _skip, ...payload } = data;
+        const body = { ...payload, tags: payload.tags ?? [] };
         try {
             if (editItem) {
-                await updateItem.mutateAsync({ id: editItem.id, ...payload });
+                await updateItem.mutateAsync({ id: editItem.id, ...body });
                 toast.success("Đã cập nhật món ăn!");
             } else {
-                await createItem.mutateAsync(payload);
+                await createItem.mutateAsync(body);
                 toast.success("Đã thêm món ăn mới!");
             }
             setModalOpen(false);
@@ -277,6 +293,18 @@ export default function ManagerMenuPage() {
                                                             <p className="text-cream font-medium">{item.name}</p>
                                                             {item.preparationTime && (
                                                                 <p className="text-cream/40 text-xs mt-0.5">{item.preparationTime} phút</p>
+                                                            )}
+                                                            {item.tags && item.tags.some(isMenuItemTagId) && (
+                                                                <div className="flex flex-wrap gap-1 mt-1.5 max-w-[220px]">
+                                                                    {item.tags.filter(isMenuItemTagId).map((tag) => (
+                                                                        <span
+                                                                            key={tag}
+                                                                            className="text-[9px] tracking-wide uppercase px-1.5 py-0.5 rounded bg-gold/12 text-gold/90 border border-gold/25"
+                                                                        >
+                                                                            {t(`menu.item_tags.${tag}`)}
+                                                                        </span>
+                                                                    ))}
+                                                                </div>
                                                             )}
                                                         </div>
                                                     </div>
@@ -425,6 +453,22 @@ export default function ManagerMenuPage() {
                                     type="number"
                                     className="w-full bg-white/5 border border-white/10 text-cream px-3.5 py-2.5 text-sm rounded-md focus:outline-none focus:border-gold/60"
                                 />
+                            </div>
+                            <div>
+                                <label className="block text-cream/60 text-xs uppercase tracking-[0.18em] mb-2">Tag trên menu (khách xem)</label>
+                                <div className="flex flex-wrap gap-x-4 gap-y-2">
+                                    {MENU_ITEM_TAG_IDS.map((id) => (
+                                        <label key={id} className="flex items-center gap-2 cursor-pointer text-cream/85 text-sm select-none">
+                                            <input
+                                                type="checkbox"
+                                                className="rounded border-white/20 bg-white/5 text-gold focus:ring-gold/40"
+                                                checked={selectedTags.includes(id)}
+                                                onChange={() => toggleTag(id)}
+                                            />
+                                            {t(`menu.item_tags.${id}`)}
+                                        </label>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                         <div className="space-y-3">
